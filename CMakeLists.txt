@@ -31,7 +31,10 @@ set(PROJECT_SOURCES
         main.cpp
         mainwindow.cpp
         mainwindow.h
+        qdsvtablemodel.h
+        qdsvtablemodel.cpp
         mainwindow.ui
+        mainwindow.h
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
