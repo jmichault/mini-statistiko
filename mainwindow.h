@@ -21,6 +21,7 @@ private slots:
     void on_Butono_Cor_clicked();
 
 private:
+    void litNomsVar();
     Ui::MainWindow *ui;
 };
 #endif // MAINWINDOW_H

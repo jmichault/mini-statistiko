@@ -9,8 +9,13 @@
 #define MinP 0.020
 #define MaxP 0.980
 
-bool TVar[MAXVAR];
+bool
+  TVar[MAXVAR]
+ ,Donnees=false;
 
+int
+  NbVar
+ ;
 long
   LCount// nombre de lignes dans les données
  ,LPoints// nombre de points utilisés
@@ -23,17 +28,18 @@ double
  ,TlfPdt[MAXVAR][MAXVAR] // somme des x*y
 ;
 
+QString
+  AsNomsVar[MAXVAR]
+ ;
 /******************* *
  TlfMat:array[0..MAXPOLY,0..MAXPOLY+1]of extended;
   lfPoly:array[0..MAXPOLY]of extended;
  lfX0,lfX1,lfY0,lfY1:extended;
  TlfVar:array[0..MAXVAR] of extended;
  asDescVar:array[1..MAXVAR] of string;
- asNomsVar:array[1..MAXVAR] of string;
  Precisionx:integer;//nb de points sur la courbe moyenne
  MinEchX:integer;// nb min de valeurs pour unpoint pour l'afficher
  Ficin:Textfile;
- nbVar:integer;// nombre de variable dans les données
  Derpoly:integer;
 TlfSomme,TlfCompte,TlfCarre:array[0..PRECISIONXMax] of extended;
 TlfA     // coefficients A des plans (Z = a.X + b.Y + c)
@@ -50,6 +56,48 @@ TlfA     // coefficients A des plans (Z = a.X + b.Y + c)
  :array[0..MAXVAR*MAXVAR] of integer;
 ligneEnCours:integer;
  *********** */
+
+void MainWindow::litNomsVar()
+{
+ int i;
+  LCount=0;
+  if (Donnees)
+  {
+    NbVar=ui->TV_Datoj->model()->columnCount()-1;
+    for (i=0 ; i<NbVar ; i++)
+    {
+        QModelIndex idx = (ui->TV_Datoj->model()->index(i, 0));
+      AsNomsVar[i]=ui->TV_Datoj->model()->data(idx).toString();
+    }
+  }
+/*
+  else
+  {
+    nbvar:=MAXVAR-1;
+    assignfile(ficin,EFichier.text);
+    reset(ficin);
+    case RGEntete.itemindex of
+     1:
+      begin
+       LitEnteteTxt(ficin,asNomsVar,nbvar);
+       for i:=1 to nbvar do
+        asDescVar[i]:=asnomsvar[i];
+      end;
+     2:
+      begin
+       LitEnteteTxt(ficin,asDescVar,nbvar);
+       LitEnteteTxt(ficin,asNomsVar,nbvar);
+      end;
+     else
+       for i:=1 to MAXVAR do
+        begin
+         asnomsVar[i]:=intTostr(i);
+         asDescVar[i]:=asnomsvar[i];
+        end;
+     end;
+  }
+***********************/
+}
 
 
 MainWindow::MainWindow(QWidget *parent)
@@ -86,7 +134,8 @@ void MainWindow::on_Butono_sxargi_clicked()
                 }
             }
         }
-        ui->tableView->setModel(model);
+        ui->TV_Datoj->setModel(model);
+        Donnees = true;
     }
 }
 
@@ -94,8 +143,6 @@ void MainWindow::on_Butono_Cor_clicked()
 {
  int i,j;
  double lfTmp,lfX,lfY[MAXVAR];
-  LCount = 0;
-  LPoints = 0;
   for (i=0 ; i<MAXVAR ; i++)
   {
     TVar[i] = true;// au départ on suppose que toutes les variables sont numériques
@@ -105,11 +152,13 @@ void MainWindow::on_Butono_Cor_clicked()
     for (j=0 ; j<MAXVAR ; j++)
       TlfPdt[i][j] =0.0;
   }
-/*
-  litnomsVar;
-  // boucle de lecture du fichier ou de la stringGrid :
-  while not finVar do
-   begin
+  litNomsVar();
+  // boucle de lecture de la tableview :
+  LCount = 0;
+  LPoints = 0;
+  while (LCount <= ui->TV_Datoj->model()->rowCount()-2)
+  {
+      /*
     if CBgroupe.checked then
      begin
       for j:=0 to nbVar do
@@ -155,7 +204,9 @@ void MainWindow::on_Butono_Cor_clicked()
        if(TVar[i] and TVar[j]) then
          TlfPdt[i][j]:=TlfPdt[i][j] +TlfVar[i]*TlfVar[j];
      end;
-   end;
+   */
+  }
+  /*
   if not donnees then closefile(FicIn);
   Form1.SGCorrel.rowcount:=nbVar+3;
   Form1.SGCorrel.colcount:=nbVar+1;

@@ -163,6 +163,19 @@
         </property>
        </item>
       </widget>
+      <widget class="QCheckBox" name="CBGroupe">
+       <property name="geometry">
+        <rect>
+         <x>180</x>
+         <y>50</y>
+         <width>85</width>
+         <height>21</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Grouper</string>
+       </property>
+      </widget>
      </widget>
     </item>
     <item>
@@ -233,7 +246,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QTableView" name="tableView">
+           <widget class="QTableView" name="TV_Datoj">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
               <horstretch>0</horstretch>
