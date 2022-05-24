@@ -18,6 +18,8 @@ public:
 private slots:
     void on_Butono_sxargi_clicked();
 
+    void on_Butono_Cor_clicked();
+
 private:
     Ui::MainWindow *ui;
 };
