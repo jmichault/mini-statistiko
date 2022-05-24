@@ -25,6 +25,7 @@ double
   TlfSommes[MAXVAR]// somme des x
  ,TlfCarres[MAXVAR]// somme des x*x
  ,TlfEcart[MAXVAR] // ecart-type de x
+ ,TlfVar[MAXVAR]
  ,TlfPdt[MAXVAR][MAXVAR] // somme des x*y
 ;
 
@@ -35,7 +36,7 @@ QString
  TlfMat:array[0..MAXPOLY,0..MAXPOLY+1]of extended;
   lfPoly:array[0..MAXPOLY]of extended;
  lfX0,lfX1,lfY0,lfY1:extended;
- TlfVar:array[0..MAXVAR] of extended;
+
  asDescVar:array[1..MAXVAR] of string;
  Precisionx:integer;//nb de points sur la courbe moyenne
  MinEchX:integer;// nb min de valeurs pour unpoint pour l'afficher
@@ -99,6 +100,28 @@ void MainWindow::litNomsVar()
 ***********************/
 }
 
+void MainWindow::litVar()
+{
+ long i;
+  TlfVar[0]=1;
+  if (Donnees)
+  {
+    for (i=0 ; i<NbVar ; i++)
+    {
+      if (TVar[i])
+      {
+        QModelIndex idx = (ui->TV_Datoj->model()->index(i, LCount+1));
+        bool doubleOk;
+        TlfVar[i]=ui->TV_Datoj->model()->data(idx).toDouble(&doubleOk);
+        if (!doubleOk)
+          TVar[i]=false;
+      }
+    }
+  }
+  //else litLigneTxt(ficin,TVar,TlfVar,nbVar);
+}
+
+
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -158,16 +181,16 @@ void MainWindow::on_Butono_Cor_clicked()
   LPoints = 0;
   while (LCount <= ui->TV_Datoj->model()->rowCount()-2)
   {
-      /*
-    if CBgroupe.checked then
-     begin
-      for j:=0 to nbVar do
-       begin
-        lfx[j]:=0;
-        lfy[j]:=0;
-       end;
-      for i:=1 to SEGroupe.value do
-       begin
+
+    if (ui->CBGroupe->isChecked() )
+    { /*
+      for (j=0 ; j<nbVar ; j++)
+      {
+        Lfx[j]=0;
+        Lfy[j]=0;
+      }
+      for (i=1 ; i< ui->SEGroupe->value() )
+      {
         if not finvar then
          begin
           litVar;
@@ -189,13 +212,15 @@ void MainWindow::on_Butono_Cor_clicked()
         TlfVar[j]:=lfx[j]/segroupe.value;
         TlfVar[j]:=lfy[j]/segroupe.value;
        end;
-     end
+    */
+    }
     else
-     begin
-      litVar;
-      inc(lcount);
-      inc(lPoints);
-     end;
+    {
+      litVar();
+      LCount++;
+      LPoints++;
+    }
+     /*
     for i:=0 to nbVar do
      begin
       TlfSommes[i]:=TlfSommes[i]+TlfVar[i];

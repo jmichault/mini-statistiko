@@ -22,6 +22,7 @@ private slots:
 
 private:
     void litNomsVar();
+    void litVar();
     Ui::MainWindow *ui;
 };
 #endif // MAINWINDOW_H
