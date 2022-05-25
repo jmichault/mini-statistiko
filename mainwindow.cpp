@@ -64,7 +64,7 @@ void MainWindow::litNomsVar()
   LCount=0;
   if (Donnees)
   {
-    NbVar=ui->TV_Datoj->model()->columnCount()-1;
+    NbVar=ui->TV_Datoj->model()->columnCount();
     for (i=0 ; i<NbVar ; i++)
     {
         QModelIndex idx = (ui->TV_Datoj->model()->index(0, i));
@@ -230,54 +230,51 @@ void MainWindow::on_Butono_Cor_clicked()
      }
   }
   // if not donnees then closefile(FicIn);
-  ui->TW_Cor->setRowCount(NbVar+3);
-  ui->TW_Cor->setColumnCount(NbVar+1);
+  ui->TW_Cor->setRowCount(NbVar);
+  ui->TW_Cor->setColumnCount(NbVar);
   QStringList *VLabels=new QStringList();
   QStringList *HLabels=new QStringList();
   for (i=0 ; i< NbVar ; i++)
   {
+    if (ui->CB_kapo->currentIndex() ==1 )
+      VLabels->append(QString("%1 : %2").arg(i+1).arg(AsNomsVar[i]));
+    else if (ui->CB_kapo->currentIndex() ==2 )
+      VLabels->append(QString("%1 : %2 : %3").arg(i+1).arg(AsNomsVar[i]).arg(AsDescVar[i]));
+    else
+      VLabels->append(QString("%1").arg(i+1));
+    if (i==0)
+      HLabels->append(QString("N°:      %1\nmoyenne :  %2\nécart type : %3").arg(i+1).arg(TlfSommes[i]/LPoints,0,'g',3).arg(TlfEcart[i],0,'g',3));
+    else
+      HLabels->append(QString("%1\n%2\n%3").arg(i+1).arg(TlfSommes[i]/LPoints,0,'g',3).arg(TlfEcart[i],0,'g',3));
     if(TVar[i])
     {
        lfTmp=(TlfCarres[i]/LPoints-TlfSommes[i]*TlfSommes[i]/LPoints/LPoints);
        if (lfTmp >0) TlfEcart[i]=sqrt(lfTmp);
        else TlfEcart[i]=0;
-//       if (ui->CB_kapo->currentIndex() ==1 )
-         VLabels->append(QString("%1 : %2").arg(i+1).arg(AsNomsVar[i]));
-//       if (ui->CB_kapo->currentIndex() ==2 )
-//         VLabels->append(QString("%1 : %2 : %3").arg(i).arg(AsNomsVar[i]).arg(AsDescVar[i])));
-//       else
-//         VLabels->append(QString("%1").arg(i));
-       if (i==0)
-         HLabels->append(QString("N°:      %1\nmoyenne :  %2\nécart type : %3").arg(i+1).arg(TlfSommes[i]/LPoints,0,'g',3).arg(TlfEcart[i],0,'g',3));
-       else
-         HLabels->append(QString("%1\n%2\n%3").arg(i+1).arg(TlfSommes[i]/LPoints,0,'g',3).arg(TlfEcart[i],0,'g',3));
-       ui->TW_Cor->setColumnWidth(i+1,30);
+       ui->TW_Cor->setColumnWidth(i+1,70);
     }
     else
     {
-      ui->TW_Cor->setColumnWidth(i,3);
-      ui->TW_Cor->setRowHeight(i+2,3);
+      ui->TW_Cor->setColumnWidth(i,2);
+      ui->TW_Cor->setRowHeight(i,2);
     }
   }
   ui->TW_Cor->setVerticalHeaderLabels(*VLabels);
   ui->TW_Cor->setHorizontalHeaderLabels(*HLabels);
-/*
-    for i:=1 to nbVar+1 do
-    begin
-     if(not TVar[i])then continue;
-     for j:=1 to nbVar+1 do
-      begin
-       if(TVar[j]) then
-        begin
-         lfTmp:=TlfPdt[i][j]/LPoints-TlfSommes[i]*TlfSommes[j]/LPoints/LPoints;
-         if( TlfEcart[i]<> 0)and (TlfEcart[j]<>0) then
-            lfTmp:= lfTmp/TlfEcart[i]/TlfEcart[j]
-         else lfTmp:=0;
-         Form1.SGCorrel.cells[i,j+2]
-//            :=FloatToStr(lfTmp);
-            :=FloatToStrF(lfTmp,ffFixed,4,3);
-        end;
-     end;
-   end;
-*/
+
+  for (i=0 ; i<NbVar ; i++)
+  {
+    if(! TVar[i]) continue;
+    for ( j=0 ; j< NbVar ; j++)
+    {
+      if(TVar[j])
+      {
+         lfTmp=TlfPdt[i][j]/LPoints-TlfSommes[i]*TlfSommes[j]/LPoints/LPoints;
+         if ( (TlfEcart[i] != 0) && (TlfEcart[j]!=0))
+            lfTmp= lfTmp/TlfEcart[i]/TlfEcart[j];
+         else lfTmp=0;
+         ui->TW_Cor->setItem(j,i,new QTableWidgetItem(QString("%1").arg(lfTmp,0,'g',3)));
+      }
+    }
+  }
 }
