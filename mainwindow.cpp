@@ -10,7 +10,7 @@
 #define MaxP 0.980
 
 bool
-  TVar[MAXVAR]
+  TVar[MAXVAR] // la variable est-elle numérique ?
  ,Donnees=false;
 
 int
@@ -31,13 +31,12 @@ double
 
 QString
   AsNomsVar[MAXVAR]
+ ,AsDescVar[MAXVAR]
  ;
 /******************* *
  TlfMat:array[0..MAXPOLY,0..MAXPOLY+1]of extended;
   lfPoly:array[0..MAXPOLY]of extended;
  lfX0,lfX1,lfY0,lfY1:extended;
-
- asDescVar:array[1..MAXVAR] of string;
  Precisionx:integer;//nb de points sur la courbe moyenne
  MinEchX:integer;// nb min de valeurs pour unpoint pour l'afficher
  Ficin:Textfile;
@@ -58,6 +57,7 @@ TlfA     // coefficients A des plans (Z = a.X + b.Y + c)
 ligneEnCours:integer;
  *********** */
 
+// lit les noms des variables dans la première ligne de l'onglet données.
 void MainWindow::litNomsVar()
 {
  int i;
@@ -67,7 +67,7 @@ void MainWindow::litNomsVar()
     NbVar=ui->TV_Datoj->model()->columnCount()-1;
     for (i=0 ; i<NbVar ; i++)
     {
-        QModelIndex idx = (ui->TV_Datoj->model()->index(i, 0));
+        QModelIndex idx = (ui->TV_Datoj->model()->index(0, i));
       AsNomsVar[i]=ui->TV_Datoj->model()->data(idx).toString();
     }
   }
@@ -110,7 +110,7 @@ void MainWindow::litVar()
     {
       if (TVar[i])
       {
-        QModelIndex idx = (ui->TV_Datoj->model()->index(i, LCount+1));
+        QModelIndex idx = (ui->TV_Datoj->model()->index(LCount+1,i));
         bool doubleOk;
         TlfVar[i]=ui->TV_Datoj->model()->data(idx).toDouble(&doubleOk);
         if (!doubleOk)
@@ -220,50 +220,49 @@ void MainWindow::on_Butono_Cor_clicked()
       LCount++;
       LPoints++;
     }
-     /*
-    for i:=0 to nbVar do
-     begin
-      TlfSommes[i]:=TlfSommes[i]+TlfVar[i];
-      TlfCarres[i]:=TlfCarres[i]+TlfVar[i]*TlfVar[i];
-      for j:=0 to nbVar do
-       if(TVar[i] and TVar[j]) then
-         TlfPdt[i][j]:=TlfPdt[i][j] +TlfVar[i]*TlfVar[j];
-     end;
-   */
+    for (i=0 ; i< NbVar ; i++)
+    {
+      TlfSommes[i]=TlfSommes[i]+TlfVar[i];
+      TlfCarres[i]=TlfCarres[i]+TlfVar[i]*TlfVar[i];
+      for ( j=0 ; j< NbVar ; j++)
+       if(TVar[i] && TVar[j])
+         TlfPdt[i][j]=TlfPdt[i][j] +TlfVar[i]*TlfVar[j];
+     }
   }
-  /*
-  if not donnees then closefile(FicIn);
-  Form1.SGCorrel.rowcount:=nbVar+3;
-  Form1.SGCorrel.colcount:=nbVar+1;
-  Form1.SGCorrel.cells[0,1]:='moyenne';
-  Form1.SGCorrel.cells[0,2]:='écart type';
-  for i:=1 to nbVar do
-   begin
-     if(TVar[i]) then
-     begin
-       lfTmp:=(TlfCarres[i]/LPoints-TlfSommes[i]*TlfSommes[i]/LPoints/LPoints);
-       if lfTmp >0 then TlfEcart[i]:=sqrt(lfTmp)
-       else TlfEcart[i]:=0;
-       case form1.rgEntete.itemindex of
-        1:
-         Form1.SGCorrel.cells[0,i+2]:=IntTostr(i)+' : '+asNomsvar[i];
-        2:
-         Form1.SGCorrel.cells[0,i+2]:=IntTostr(i)+' : '+asNomsvar[i]+' : '+asDescVar[i];
-        else
-         Form1.SGCorrel.cells[0,i+2]:=IntTostr(i);
-       end;
-       Form1.SGCorrel.cells[i,0]:=IntTostr(i);
-       Form1.SGCorrel.cells[i,1]:=FloatTostrF(TlfSommes[i]/LPoints,ffGeneral,3,2);
-       Form1.SGCorrel.cells[i,2]:=FloatTostrF(TlfEcart[i],ffGeneral,3,2);
-       Form1.SGCorrel.colwidths[i]:=30;
-      end
-     else
-      begin
-       Form1.SGCorrel.colwidths[i]:=3;
-       Form1.SGCorrel.RowHeights[i+2]:=3;
-      end;
-  end;
-   for i:=1 to nbVar+1 do
+  // if not donnees then closefile(FicIn);
+  ui->TW_Cor->setRowCount(NbVar+3);
+  ui->TW_Cor->setColumnCount(NbVar+1);
+  QStringList *VLabels=new QStringList();
+  QStringList *HLabels=new QStringList();
+  for (i=0 ; i< NbVar ; i++)
+  {
+    if(TVar[i])
+    {
+       lfTmp=(TlfCarres[i]/LPoints-TlfSommes[i]*TlfSommes[i]/LPoints/LPoints);
+       if (lfTmp >0) TlfEcart[i]=sqrt(lfTmp);
+       else TlfEcart[i]=0;
+//       if (ui->CB_kapo->currentIndex() ==1 )
+         VLabels->append(QString("%1 : %2").arg(i+1).arg(AsNomsVar[i]));
+//       if (ui->CB_kapo->currentIndex() ==2 )
+//         VLabels->append(QString("%1 : %2 : %3").arg(i).arg(AsNomsVar[i]).arg(AsDescVar[i])));
+//       else
+//         VLabels->append(QString("%1").arg(i));
+       if (i==0)
+         HLabels->append(QString("N°:      %1\nmoyenne :  %2\nécart type : %3").arg(i+1).arg(TlfSommes[i]/LPoints,0,'g',3).arg(TlfEcart[i],0,'g',3));
+       else
+         HLabels->append(QString("%1\n%2\n%3").arg(i+1).arg(TlfSommes[i]/LPoints,0,'g',3).arg(TlfEcart[i],0,'g',3));
+       ui->TW_Cor->setColumnWidth(i+1,30);
+    }
+    else
+    {
+      ui->TW_Cor->setColumnWidth(i,3);
+      ui->TW_Cor->setRowHeight(i+2,3);
+    }
+  }
+  ui->TW_Cor->setVerticalHeaderLabels(*VLabels);
+  ui->TW_Cor->setHorizontalHeaderLabels(*HLabels);
+/*
+    for i:=1 to nbVar+1 do
     begin
      if(not TVar[i])then continue;
      for j:=1 to nbVar+1 do
