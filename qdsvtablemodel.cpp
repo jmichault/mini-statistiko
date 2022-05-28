@@ -63,8 +63,7 @@ Qt::ItemFlags QDsvTableModel::flags(const QModelIndex &index) const
     return flags;
 }
 
-void checkString(QString &temp, QList<QString> &list, QDsvMatrix<QString> &data,
-                 const QChar &delimiter, const QChar &character = (short)0)
+void QDsvTableModel::checkString(QString &temp, QList<QString> &list, const QChar &character )
 {
     if(temp.count("\"")%2 == 0) {
         if (temp.startsWith(QChar('\"')) && temp.endsWith( QChar('\"') ) ) {
@@ -74,7 +73,9 @@ void checkString(QString &temp, QList<QString> &list, QDsvMatrix<QString> &data,
         temp.replace("\"\"", "\"");
         list.append(temp);
         if (character != delimiter) {
-            data.append(list);
+            if(nbHeader>=2 && !header1.isEmpty() && header2.isEmpty()) header2=list;
+            else if(nbHeader>=1 && header1.isEmpty()) header1=list;
+            else dsvMatrix.append(list);
             list.clear();
         }
         temp.clear();
@@ -87,7 +88,7 @@ void checkString(QString &temp, QList<QString> &list, QDsvMatrix<QString> &data,
 bool QDsvTableModel::loadFromFile(const QString &fileName, const QChar &delim)
 {
     dsvMatrix.clear();
-    QChar delimiter;
+    //QChar delimiter;
     QFile file(fileName);
     if (delim == 0) {
         QString extension = QFileInfo(file).completeSuffix();
@@ -114,10 +115,10 @@ bool QDsvTableModel::loadFromFile(const QString &fileName, const QChar &delim)
         if (in.atEnd()) {
             if (lastCharacter == delimiter) //cases where last character is equal to the delimiter
                 temp = "";
-            checkString(temp, row, dsvMatrix, delimiter, QChar('\n'));
+            checkString(temp, row,   QChar('\n'));
             break;
         } else if (character == delimiter || character == QChar('\n'))
-            checkString(temp, row, dsvMatrix, delimiter, character);
+            checkString(temp, row,   character);
         else {
             temp.append(character);
             lastCharacter = character;
@@ -185,7 +186,66 @@ bool QDsvTableModel::save(const QString &fileName, const QChar &delim,
     return true;
 }
 
+bool QDsvTableModel::removeRows(int row, int count, const QModelIndex &parent )
+{
+    if(dsvMatrix.rowCount()<row+count) return false;
+    beginRemoveRows(parent,row,row+count);
+    dsvMatrix.remove(row,count);
+    endRemoveRows();
+    return true;
+}
 
+void QDsvTableModel::setNbHeader(int nb)
+{
+    if (nbHeader <=0 && nb >0)
+    {
+        header1=rowAt(0);
+        nbHeader=1;
+        headerDataChanged(Qt::Horizontal, 0, header1.count());
+        removeRows(0,1);
+    }
+    if (nbHeader <=1 && nb >1)
+    {
+        header2=rowAt(0);
+        nbHeader=2;
+        removeRows(0,1);
+    }
+    if (nbHeader >=2 && nb <2)
+    {
+        dsvMatrix.insert(0,header2);
+        header2.clear();
+        nbHeader=1;
+    }
+    if (nbHeader >=1 && nb <1)
+    {
+        dsvMatrix.insert(0,header1);
+        header1.clear();
+        nbHeader=0;
+    }
+    headerDataChanged(Qt::Vertical, 0, dsvMatrix.columnCount());
+}
+
+QVariant QDsvTableModel::headerData(int section, Qt::Orientation orientation, int role ) const{
+  if(role == Qt::DisplayRole)
+  {
+    if(orientation == Qt::Horizontal)
+    {
+        if(header1.count()>section)
+            return header1[section];
+        else
+            return QString("%1").arg(section+1);
+    };
+    return QString("%1").arg(section+1);
+  }
+  if(role == Qt::ToolTipRole && orientation == Qt::Horizontal)
+  {
+      if(header2.count()>section)
+          return header2[section];
+      else if(header1.count()>section)
+          return header1[section];
+  }
+  return QVariant();
+}
 
 
 

@@ -52,6 +52,13 @@ public:
         return rowData.value(column);
     }
 
+    QList<T> rowAt(int row) const{
+        if (row >= rowCount())
+            return QList<T>();
+        QList<T> rowData = m_data.at(row);
+        return rowData;
+    }
+
     bool setValue(int row, int column, T value) {
         if (column >= columnCount()) {
             m_columnCount = column + 1;
@@ -98,6 +105,17 @@ public:
         m_data.append(value);
         ++m_rowCount;
     }
+    void insert(qsizetype i, const QList<T> &value) {
+        if (value.size() > columnCount())
+            m_columnCount = value.size();
+        m_data.insert(i,value);
+        ++m_rowCount;
+    }
+    void remove(qsizetype i, qsizetype n = 1) {
+        if(m_rowCount<n) return;
+        m_data.remove(i,n);
+        m_rowCount -= n;
+    }
 };
 
 //QDsvTableModel class
@@ -123,14 +141,24 @@ public:
 
     bool save(const QString &fileName, const QChar &delim = (short)0,
               DsvWriteFlag flag = UseDoubleQuotesIfNeeded);
-
+    bool removeRows(int row, int count, const QModelIndex &parent = QModelIndex());
+    QStringList rowAt(int row) const{
+        return dsvMatrix.rowAt(row);
+    }
+    QStringList header1,header2;
+    QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
+    void setNbHeader(int nb);
 signals:
     
 public slots:
 
 private:
     QDsvMatrix<QString> dsvMatrix;
-    
+    QChar delimiter;
+    int nbHeader=0;
+    void checkString(QString &temp, QList<QString> &list, const QChar &character);
+
+
 };
 
 #endif // QDSVTABLEMODEL_H

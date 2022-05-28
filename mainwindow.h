@@ -20,6 +20,10 @@ private slots:
 
     void on_Butono_Cor_clicked();
 
+    void on_PBRegLin_clicked();
+
+    void on_CB_kapo_currentIndexChanged(int index);
+
 private:
     void litNomsVar();
     void litVar();
