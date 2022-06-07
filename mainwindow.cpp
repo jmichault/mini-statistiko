@@ -1,17 +1,20 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
+#include "eval.h"
 
 #include <QFileDialog>
 #include <QInputDialog>
 #include <QMessageBox>
-#include "qdsvtablemodel.h"
 
 #define MAXVAR 100
 #define MinP 0.020
 #define MaxP 0.980
 
+// degré maximum du polynôme
+#define MAXPOLY 10
+
 bool
-  TVar[MAXVAR] // la variable est-elle numérique ?
+  TVarIsNum[MAXVAR] // la variable est-elle numérique ?
  ,Donnees=false;
 
 int
@@ -34,9 +37,11 @@ QString
   AsNomsVar[MAXVAR]
  ,AsDescVar[MAXVAR]
  ;
-int NbHeader=0; // nombre de lignes d'en-têtes
+//int NbHeader=0; // nombre de lignes d'en-têtes
 
-QDsvTableModel *Model;
+double
+  TlfMat[MAXPOLY][MAXPOLY]
+;
 /******************* *
  TlfMat:array[0..MAXPOLY,0..MAXPOLY+1]of extended;
   lfPoly:array[0..MAXPOLY]of extended;
@@ -58,8 +63,19 @@ TlfA     // coefficients A des plans (Z = a.X + b.Y + c)
  Tix     // indice variable x
  ,Tiy    // indice variable y
  :array[0..MAXVAR*MAXVAR] of integer;
-ligneEnCours:integer;
  *********** */
+
+MainWindow::MainWindow(QWidget *parent)
+    : QMainWindow(parent)
+    , ui(new Ui::MainWindow)
+{
+    ui->setupUi(this);
+    ui->tabWidget->setTabEnabled(0,true);
+    ui->tabWidget->setTabEnabled(1,false);
+    ui->tabWidget->setTabEnabled(2,false);
+
+}
+
 
 // lit les noms des variables dans l'en-tête de l'onglet données.
 void MainWindow::litNomsVar()
@@ -103,7 +119,7 @@ void MainWindow::litNomsVar()
 ***********************/
 }
 
-void MainWindow::litVar()
+void MainWindow::litVar(int ligne)
 {
  long i;
   TlfVar[0]=1;
@@ -111,26 +127,17 @@ void MainWindow::litVar()
   {
     for (i=0 ; i<NbVar ; i++)
     {
-      if (TVar[i])
+      if (TVarIsNum[i])
       {
-        QModelIndex idx = (ui->TV_Datoj->model()->index(LCount,i));
+        QModelIndex idx = (ui->TV_Datoj->model()->index(ligne,i));
         bool doubleOk;
         TlfVar[i]=ui->TV_Datoj->model()->data(idx).toDouble(&doubleOk);
         if (!doubleOk)
-          TVar[i]=false;
+          TVarIsNum[i]=false;
       }
     }
   }
-  //else litLigneTxt(ficin,TVar,TlfVar,nbVar);
-}
-
-
-
-MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent)
-    , ui(new Ui::MainWindow)
-{
-    ui->setupUi(this);
+  //else litLigneTxt(ficin,TVarIsNum,TlfVar,nbVar);
 }
 
 MainWindow::~MainWindow()
@@ -141,12 +148,12 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_Butono_sxargi_clicked()
 {
+  Model.setNbHeader(0);
     QString fileName = QFileDialog::getOpenFileName(this, ("Open File"), ".", ("Fichier Texte(*.csv *.txt)"));
     if (!fileName.isEmpty()) {
-        Model = new QDsvTableModel;
         QString extension = QFileInfo(QFile(fileName)).completeSuffix();
         if (extension.toLower() == "csv" || extension.toLower() == "tsv") //known file extensions
-            Model->loadFromFile(fileName,';');
+            Model.loadFromFile(fileName,';');
         else {
             while (true) {
                 bool ok;
@@ -155,14 +162,20 @@ void MainWindow::on_Butono_sxargi_clicked()
                                                   "", &ok);
                 if (ok && s.size() == 1) {
                     QChar delim = s.constData()[0];
-                    Model->loadFromFile(fileName, delim);
+                    Model.loadFromFile(fileName, delim);
                     break;
                 }
             }
         }
-        ui->TV_Datoj->setModel(Model);
+        ui->TV_Datoj->setModel(&Model);
         Donnees = true;
     }
+    ui->Butono_Cor->setEnabled(true);
+    ui->tabWidget->setTabEnabled(1,true);
+    ui->tabWidget->setTabEnabled(2,false);
+//    ui->TW_Cor->setEnabled(true);
+//    ui->tab_RegLin->setEnabled(false);
+  Model.setNbHeader(ui->CB_kapo->currentIndex());
 }
 
 void MainWindow::on_Butono_Cor_clicked()
@@ -171,7 +184,7 @@ void MainWindow::on_Butono_Cor_clicked()
  double lfTmp,lfX,lfY[MAXVAR];
   for (i=0 ; i<MAXVAR ; i++)
   {
-    TVar[i] = true;// au départ on suppose que toutes les variables sont numériques
+    TVarIsNum[i] = true;// au départ on suppose que toutes les variables sont numériques
     TlfSommes[i] = 0;
     TlfCarres[i] = 0;// somme des x*x
     TlfEcart[i] = 0;// ecart-type de x
@@ -219,7 +232,7 @@ void MainWindow::on_Butono_Cor_clicked()
     }
     else
     {
-      litVar();
+      litVar(LCount);
       LCount++;
       LPoints++;
     }
@@ -228,7 +241,7 @@ void MainWindow::on_Butono_Cor_clicked()
       TlfSommes[i]=TlfSommes[i]+TlfVar[i];
       TlfCarres[i]=TlfCarres[i]+TlfVar[i]*TlfVar[i];
       for ( j=0 ; j< NbVar ; j++)
-       if(TVar[i] && TVar[j])
+       if(TVarIsNum[i] && TVarIsNum[j])
          TlfPdt[i][j]=TlfPdt[i][j] +TlfVar[i]*TlfVar[j];
      }
   }
@@ -239,7 +252,7 @@ void MainWindow::on_Butono_Cor_clicked()
   QStringList *HLabels=new QStringList();
   for (i=0 ; i< NbVar ; i++)
   {
-    if(TVar[i])
+    if(TVarIsNum[i])
     {
        lfTmp=(TlfCarres[i]/LPoints-TlfSommes[i]*TlfSommes[i]/LPoints/LPoints);
        if (lfTmp >0) TlfEcart[i]=sqrt(lfTmp);
@@ -267,10 +280,10 @@ void MainWindow::on_Butono_Cor_clicked()
 
   for (i=0 ; i<NbVar ; i++)
   {
-    if(! TVar[i]) continue;
+    if(! TVarIsNum[i]) continue;
     for ( j=0 ; j< NbVar ; j++)
     {
-      if(TVar[j])
+      if(TVarIsNum[j])
       {
          lfTmp=TlfPdt[i][j]/LPoints-TlfSommes[i]*TlfSommes[j]/LPoints/LPoints;
          if ( (TlfEcart[i] != 0) && (TlfEcart[j]!=0))
@@ -280,81 +293,166 @@ void MainWindow::on_Butono_Cor_clicked()
       }
     }
   }
+  ui->tabWidget->setTabEnabled(0,true);
+  ui->tabWidget->setTabEnabled(1,true);
+  ui->tabWidget->setTabEnabled(2,true);
 }
 
-/*
-procedure faittest(tvars:array of integer;nbvars:integer);
-var
-varY:integer;// numéro de la variable à expliquer
-formule,tmpstr:string;
-tmpc:char;
-virgule:boolean;
-i,j,k,l,n,x:integer;
-lfS,lfSC,lfS2,lfSC2,lfP,lfZ,lfVar,lfTmp,lfEcart,lfY,cor1,cor2
-  :extended;
-ligne:integer;//N° de ligne dans la stringgrid;
-begin
-ligne:=nbvars;
-varY:=form1.SEVarY.value;;
-form1.sgdata2.colcount:=nbvars+4;
-for x:= 1 to nbVar do
- begin
-  if (not tvar[x]) or (x=varY) then continue;
-  tvars[nbvars]:= x;
-  for i:=1 to nbvars-1 do
-   if (x=tvars[i]) or (vary=x) then break;
-  if (i<nbvars) and ((x=tvars[i]) or (vary=x)) then continue;
-  // remplir la matrice
-  for i:=0 to nbVars do
-   begin
-     for j:=0 to nbVars do
-      TlfMat[i,j]:=TlfPdt[tvars[i]][tvars[j]]/LPoints;
-     TlfMat[i,nbVars+1]:= -TlfPdt[tvars[i]][varY]/LPoints;
-   end;
-  // résoudre la matrice
-  resoutMatrice(nbVars);
-  //afficher le polynome
-  formule:='';
-  for i:=1 to nbvars do
-   begin
-    formule:=formule+'-'+inttostr(tvars[i]);
-    form1.SGData2.Cells[3+i,ligne]:=IntTostr(tvars[i]);
-   end;
-  form1.sgdata2.cells[0,ligne]:=formule;
-  formule:='';
-  for j:=0 to nbVars do
-   begin
-    tmpstr:=floatToStr(-TlfMat[j,nbVars+1]);
-    l:=0;virgule:=false;
-    for k:=1 to length(tmpstr) do
-     begin
-      tmpc:=tmpstr[k];
-      if (tmpc=',') or (tmpc='.') then virgule:=true;
-      if (tmpc>='1')and(tmpc<='9') then inc(l);
-      if (l>=4) and virgule then break;
-     end;
-    if j=0 then
-      formule:=formule+' '+copy(tmpstr,1,k)
-    else
-      if form1.rgEntete.itemindex=2 then
-       formule:=formule+'+'+asNomsVar[tvars[j]]+'*'+copy(tmpstr,1,k)
-      else
-       formule:=formule+'+'+':'+intTostr(tvars[j])+'*'+copy(tmpstr,1,k);
-    if pos('E',tmpstr) >0 then
-      formule:=formule+copy(tmpstr,pos('E',tmpstr),10);
-   end;
-  form1.sgdata2.cells[1,ligne]:=formule;
-  //calcul moyenne et écart type
-  lfS:=0;
-  lfSC:=0;
-  lfS2:=0;
-  lfSC2:=0;
-  lfP:=0;
-  // boucle de la stringGrid :
-  evalexpr(formule,getvars);
-  ligneEnCours:=1;
-  while ligneEnCours < form1.SGDATA.rowcount do
-   begin
+
+/**********************
+ * résout le système de (n+1) équations à (n+1) inconnues contenu dans TlfMat.
+ *  equation i :  somme(0<=j<=n) des ( Xj * TlfMat[i][j] ) + TlfMat[i][n+1] = 0
+ * TlfMat est donc un tableau de (n+1) lignes * (n+2) colonnes.
+*************************/
+void resoutMatrice(int n)
+{
+ int i,i2,j;
+ double lfTmp;
+  for (i=0 ; i<=n ; i++)
+  {
+    //ramener le coefficient de la ieme inconnue à 1 :
+    lfTmp=TlfMat[i][i];
+    //TODO gérer le cas TlfMat[i][i] == 0.0 ...
+    //
+    for ( j=0 ; j<=n+1 ; j++)
+       if (lfTmp !=0.0)
+         TlfMat[i][j]=TlfMat[i][j] / lfTmp;
+    // on a donc Xi = - (somme des (Xj * TlfMat[i][j] ) -TlfMat[i][n] .
+    // on remplace Xi par sa valeur dans les équations suivantes :
+    // dans les équations suivantes :
+    for ( i2=i+1 ; i2<=n ; i2++)
+    {
+      for ( j=i+1 ; j<=n+1 ; j++)
+          TlfMat[i2][j]=TlfMat[i2][j] - TlfMat[i][j]*TlfMat[i2][i];
+      TlfMat[i2][i]=0;
+    }
+  }
+  // on obtient ainsi la valeur de Xn dans -TlfMat[n][n+1], on répercute sa valeur
+  // dans les équations précédentes, ce qui nous donne Xn-1, ... :
+  for (i=n ; i>=1 ; i--)
+  {
+    // remplacer la ieme inconnue par sa valeur
+    // dans les équations précédentes :
+    for ( i2=i-1 ; i2>=0 ; i2--)
+    {
+        TlfMat[i2][n+1] =TlfMat[i2][n+1]- TlfMat[i][n+1]*TlfMat[i2][i];
+        TlfMat[i2][i]=0;
+    }
+  }
+   // normalement, on obtient une matrice carrée diagonale unitaire + les solutions dans la dernière colonne
+}
+
+int getvars(QString x)
+{
+  for ( int i=0 ; i<NbVar ; i++ )
+    if (x==AsNomsVar[i]) return i;
+  return -1;
+}
+
+double getvari(int x)
+{
+  return TlfVar[x-1];
+}
+
+// on va faire une régression linéaire en rajoutant l'une des variables non traitées
+// on utilise la méthode des moindres carrés «ordinaire» (i.e. sur l'ordonnée= en vertical)
+// droite cherchée : f(x) = A0 * V0 + A1 * V1 ....+ An-1 * Vn-1 + An
+// somme des carrés = somme( (Y-f(x))carré )
+//                  = somme ( (Y - A0*V0 -A1*V1... -An ) Carré )
+//                  = somme ( YCarré) + AiCarré*somme(ViCarré) + AnCarré*somme(1)
+//                      + 2*Ai*Aj*somme[(Vi*Vj)]...(pour i!=j)
+//                      - 2*Ai*somme(Y*Vi)
+//                      + 2*An*Ai*somme(Vi)
+//                      - 2*An*somme(Y)
+//
+// le moindre carré est obtenu quand toutes les dérivées s'annulent :
+//      pour tout i : d S/ d Ai = 0
+//      pour i<n : d S / d Ai = d AiCarré*somme(ViCarré) + 2*Ai*Aj*somme (Vi*Vj)pour(j!=i) -2*Ai*somme(Y*Vi)
+//                                +  2*An*Ai*somme(Vi)/ d Ai
+//              = 2*Ai*somme(ViCarré) +2*Aj*somme(Vj*Vi) -2*somme(Y*Vi) +2*An*somme(Y*Vi)
+//          Aj*somme(Vj*Vi)...(pour i=0...n-1) + (An - 1)*somme(Y*Vi) = 0
+//      pour i=n : d S / d An =
+//
+// tVars = tableau des variables imposées (attention, commence à 1)
+// nbvars = nb de variables déjà dans le tableau
+void MainWindow::RegLin(int *tVars, int nbvars)
+{
+ int varY;// numéro de la variable à expliquer
+ QString formule,tmpstr;
+ QChar tmpc;
+ bool virgule;
+ int i,j,k,l,n,x;
+ double lfS,lfSC,lfS2,lfSC2,lfP,lfZ,lfVar,lfTmp,lfEcart,lfY,cor1,cor2;
+ int ligne;//N° de ligne dans la QTableWidget;
+  ligne=nbvars-1;
+  varY=ui->SB_Reg_V0->value()-1;
+  ui->TW_RegLin->setColumnCount(nbvars+4);
+  ui->TW_RegLin->setRowCount(nbvars+4);
+  // on calcule la droite la plus proche pour chaque variable non traitée
+  for (x=0 ; x<NbVar ; x++)
+  {
+    if ((! TVarIsNum[x]) || (x==varY)) continue; // sauter les variables non numériques et varY
+    tVars[nbvars-1]= x;
+    // sauter les variables déjà intégrées
+    for (i=1 ; i<nbvars ; i++)
+       if ((x==tVars[i]) || (varY==x)) break;
+    // si on est sorti de la boucle précédente par le break, on saute cette variable :
+    if ( (i<nbvars) && ((x==tVars[i]) || (varY==x))) continue;
+    // on ajoute une ligne dans l'affichage
+    ui->TW_RegLin->setRowCount(ligne+1);
+    // remplir la matrice des équations à résoudre
+    for (i=0 ; i<nbvars ; i++)
+    {
+      for (j=0 ; j<nbvars ; j++)
+        TlfMat[i][j]=TlfPdt[tVars[i]][tVars[j]]/LPoints;
+      TlfMat[i][nbvars]= TlfSommes[tVars[i]]/LPoints;
+      TlfMat[i][nbvars+1]= -TlfPdt[tVars[i]][varY]/LPoints;
+    }
+    for (j=0 ; j<nbvars ; j++)
+      TlfMat[nbvars][j]=TlfSommes[tVars[j]];
+    TlfMat[nbvars][nbvars] = LPoints;
+    TlfMat[nbvars][nbvars+1] = -TlfSommes[varY];
+    // résoudre la matrice
+    resoutMatrice(nbvars);
+    //afficher le polynome
+    formule="";
+    for (i=0 ; i<nbvars ; i++)
+    {
+      formule.append(QString("-%1").arg(tVars[i]+1));
+      ui->TW_RegLin->setItem(ligne,4+i,new QTableWidgetItem(QString("%1").arg(tVars[i]+1)));
+    }
+    ui->TW_RegLin->setItem(ligne,0,new QTableWidgetItem(formule));
+
+    formule=QString("%1").arg(-TlfMat[nbvars][nbvars+1]);
+    for (j=0 ; j<nbvars ; j++)
+    {
+      tmpstr=QString("%1").arg(-TlfMat[j][nbvars+1]);
+      l=0; virgule=false;
+      for (k=0 ; k<tmpstr.length() ; k++)
+      {
+        tmpc=tmpstr[k];
+        if ( (tmpc==',') || (tmpc=='.')) virgule=true;
+        else if ( tmpc.isDigit()) l++;
+        if ( (l>=4) && virgule ) break;
+      }
+      formule.append(QString("+:%1*%2").arg(tVars[j]+1).arg(tmpstr.first(k)));
+      if (tmpstr.contains('E'))
+        formule.append(tmpstr.mid(tmpstr.indexOf('E'),10));
+    }
+    ui->TW_RegLin->setItem(ligne,1,new QTableWidgetItem(formule));
+    //calcul moyenne et écart type
+    lfS=0;
+    lfSC=0;
+    lfS2=0;
+    lfSC2=0;
+    lfP=0;
+    // Pour chacune des formules trouvées, on calcule écart type et corrélation :
+    evalExpr(formule,getvars);
+    int ligneEnCours=0;
+    while (ligneEnCours < ui->TV_Datoj->model()->rowCount() )
+    {
+      litVar(ligneEnCours);
+      /*
     if form1.CBgroupe.checked then
      begin
       lfZ:=0;
@@ -376,35 +474,38 @@ for x:= 1 to nbVar do
       lfY:=lfy/form1.segroupe.value;
      end
     else
-     begin
-      lfZ:=EvalTok(getvari);
-      lfY:=strToFloat(form1.SGData.cells[varY,ligneEnCours]);
-      inc(ligneEncours);
-     end;
-    lfS:=lfS+lfZ;
-    lfSC:=lfSC+lfZ*lfZ;
-    lfS2:=lfS2+lfZ-lfY;
-    lfSC2:=lfSC2+(lfZ-lfY)*(lfZ-lfY);
-    lfP:=lfP+lfZ*lfY;
-   end;
+    */
+      {
+        lfZ=evalTok(getvari);
+        lfY=TlfVar[varY];
+        ligneEnCours++;
+      }
+      lfS=lfS+lfZ;
+      lfSC=lfSC+lfZ*lfZ;
+      lfS2=lfS2+lfZ-lfY;
+      lfSC2=lfSC2+(lfZ-lfY)*(lfZ-lfY);
+      lfP=lfP+lfZ*lfY;
+    } // fin while
     // calcul ecart type de (Z-variable)
-    lfTmp:=(lfSC2/LPoints-lfS2*lfS2/LPoints/LPoints);
-    if lfTmp >0 then lfTmp:=sqrt(lfTmp)
-    else lfTmp:=0;
-    form1.SGData2.Cells[2,ligne]:=FloatTostrF(lfTmp,ffFixed,4,3);
+    lfTmp=(lfSC2/LPoints-lfS2*lfS2/LPoints/LPoints);
+    if (lfTmp >0) lfTmp=sqrt(lfTmp);
+    else lfTmp=0;
+    ui->TW_RegLin->setItem(ligne,2,new QTableWidgetItem(QString("%1").arg(lfTmp)));
     // calcul correlation Z et variable
     // d'abord calcul ecart type de Z :
-    lfTmp:=lfSC/LPoints-lfS*lfS/LPoints/LPoints;
-    if lfTmp >0 then lfEcart:=sqrt(lfTmp)
-    else lfEcart:=0;
-    lfTmp:=lfP/LPoints-lfS*TlfSommes[varY]/LPoints/LPoints;
-    if( TlfEcart[varY]<> 0)and (lfEcart>0) then
-       lfTmp:= lfTmp/TlfEcart[varY]/lfEcart
-    else lfTmp:=0;
-    form1.SGData2.Cells[3,ligne]:=FloatTostrF(lfTmp,ffFixed,5,4);
-    inc(ligne);
-    form1.sgdata2.rowcount:=ligne+1;
- end;//for x
+    lfTmp=lfSC/LPoints-lfS*lfS/LPoints/LPoints;
+    if (lfTmp >0) lfEcart=sqrt(lfTmp);
+    else lfEcart=0;
+    lfTmp=lfP/LPoints-lfS*TlfSommes[varY]/LPoints/LPoints;
+    if (( TlfEcart[varY]!= 0) && (lfEcart>0))
+       lfTmp= lfTmp/TlfEcart[varY]/lfEcart;
+    else lfTmp=0;
+    ui->TW_RegLin->setItem(ligne,3,new QTableWidgetItem(QString("%1").arg(lfTmp)));
+    //ui->TW_RegLin->setItem(ligne,3,new QTableWidgetItem(lfTmp));
+    ligne++;
+  }//for x
+  //ui->TW_RegLin->sortItems(3,Qt::DescendingOrder);
+/*
  // trier les lignes :
  for i:= nbvars to ligne-2 do
   begin
@@ -420,21 +521,65 @@ for x:= 1 to nbVar do
       end;
     end;
   end;
- form1.SGData2.cells[0,0]:='';
- form1.SGData2.cells[1,0]:='formule';
- form1.SGData2.cells[2,0]:='EC(f-variable)';
- form1.SGData2.cells[3,0]:='correlation';
-
-end;
 */
+  ui->TW_RegLin->setHorizontalHeaderItem(0,new QTableWidgetItem("variables"));
+  ui->TW_RegLin->setHorizontalHeaderItem(1,new QTableWidgetItem("formule"));
+  ui->TW_RegLin->setHorizontalHeaderItem(2,new QTableWidgetItem("EC(f-variable)"));
+  ui->TW_RegLin->setHorizontalHeaderItem(3,new QTableWidgetItem("correlation"));
+}
 
 // calcul des régressions linéaires
 void MainWindow::on_PBRegLin_clicked()
 {
+ int nbVars;
+ int tVars[MAXVAR];
+ int nbImp;
+  tVars[0]= 0;
+  nbVars=1;
+  RegLin(tVars,nbVars);
+  return;
+  if(ui->SBNbImp->value() >0)
+  {
+    tVars[1]=ui->SBVar1->value();
+    nbVars=2;
+    RegLin(tVars,nbVars);
+  }
+  if(ui->SBNbImp->value() >1)
+  {
+    tVars[2]=ui->SBVar2->value();
+    nbVars=3;
+    RegLin(tVars,nbVars);
+  }
+  if(ui->SBNbImp->value() >2)
+  {
+    tVars[3]=ui->SBVar3->value();
+    nbVars=4;
+    RegLin(tVars,nbVars);
+  }
+  if(ui->SBNbImp->value() >3)
+  {
+    tVars[4]=ui->SBVar4->value();
+    nbVars=5;
+    RegLin(tVars,nbVars);
+  }
+  if(ui->SBNbImp->value() >4)
+  {
+    tVars[5]=ui->SBVar5->value();
+    nbVars=6;
+    RegLin(tVars,nbVars);
+  }
+    //tVars[1]:= strToInt(sgdata2.cells[4,1]);
+    //nbVars:=2;
+    //faittest(tVars,nbvars);
+  for (nbVars=ui->SBNbImp->value()+2 ; nbVars <= ui->SBNbVars->value() ; nbVars++)
+  {
+/*    tVars[nbVars-1]= ui->TW_RegLin->itemAt(nbVars+2,nbVars-1)->text().toInt();*/
+    RegLin(tVars,nbVars);
+  }
 
 }
 
 void MainWindow::on_CB_kapo_currentIndexChanged(int index)
 {
-  Model->setNbHeader(index);
+  Model.setNbHeader(index);
 }

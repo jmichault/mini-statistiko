@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include "qdsvtablemodel.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -25,8 +26,10 @@ private slots:
     void on_CB_kapo_currentIndexChanged(int index);
 
 private:
+    QDsvTableModel Model;
     void litNomsVar();
-    void litVar();
+    void litVar(int ligne);
+    void RegLin(int *tvars, int nbvars);
     Ui::MainWindow *ui;
 };
 #endif // MAINWINDOW_H

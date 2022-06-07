@@ -73,6 +73,9 @@
          </item>
          <item>
           <widget class="QPushButton" name="Butono_Cor">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
            <property name="text">
             <string>Corrélations</string>
            </property>
@@ -98,6 +101,9 @@
     </item>
     <item>
      <widget class="QTabWidget" name="tabWidget">
+      <property name="enabled">
+       <bool>true</bool>
+      </property>
       <property name="currentIndex">
        <number>0</number>
       </property>
@@ -135,10 +141,10 @@
                 <bool>false</bool>
                </property>
                <property name="currentText">
-                <string comment="pas d'entête">Pas d'entête</string>
+                <string comment="pas d'entête">1 ligne d'entête</string>
                </property>
                <property name="currentIndex">
-                <number>0</number>
+                <number>1</number>
                </property>
                <property name="maxVisibleItems">
                 <number>3</number>
@@ -202,6 +208,12 @@
               <verstretch>0</verstretch>
              </sizepolicy>
             </property>
+            <property name="sortingEnabled">
+             <bool>true</bool>
+            </property>
+            <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
+             <bool>true</bool>
+            </attribute>
            </widget>
           </item>
          </layout>
@@ -209,16 +221,26 @@
        </layout>
       </widget>
       <widget class="QWidget" name="tab_cor">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
        <attribute name="title">
         <string>Corrélations</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout">
         <item row="0" column="0">
-         <widget class="QTableWidget" name="TW_Cor"/>
+         <widget class="QTableWidget" name="TW_Cor">
+          <property name="enabled">
+           <bool>true</bool>
+          </property>
+         </widget>
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="tab">
+      <widget class="QWidget" name="tab_RegLin">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
        <attribute name="title">
         <string>Régression linéaire</string>
        </attribute>
@@ -344,7 +366,7 @@
                 <number>1</number>
                </property>
                <property name="value">
-                <number>3</number>
+                <number>1</number>
                </property>
               </widget>
              </item>
@@ -374,7 +396,17 @@
          </widget>
         </item>
         <item>
-         <widget class="QTableWidget" name="tableWidget"/>
+         <widget class="QTableWidget" name="TW_RegLin">
+          <property name="enabled">
+           <bool>true</bool>
+          </property>
+          <property name="sortingEnabled">
+           <bool>true</bool>
+          </property>
+          <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
+           <bool>true</bool>
+          </attribute>
+         </widget>
         </item>
        </layout>
       </widget>
