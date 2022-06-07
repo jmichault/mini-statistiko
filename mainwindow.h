@@ -25,8 +25,11 @@ private slots:
 
     void on_CB_kapo_currentIndexChanged(int index);
 
+    void on_SBNbImp_valueChanged(int arg1);
+
 private:
     QDsvTableModel Model;
+    QDsvTableModel ModelRegLin;
     void litNomsVar();
     void litVar(int ligne);
     void RegLin(int *tvars, int nbvars);

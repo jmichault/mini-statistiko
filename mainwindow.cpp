@@ -5,6 +5,7 @@
 #include <QFileDialog>
 #include <QInputDialog>
 #include <QMessageBox>
+#include <QTableWidgetItem>
 
 #define MAXVAR 100
 #define MinP 0.020
@@ -119,6 +120,7 @@ void MainWindow::litNomsVar()
 ***********************/
 }
 
+// lit une ligne de données dans TV_Datoj
 void MainWindow::litVar(int ligne)
 {
  long i;
@@ -289,7 +291,22 @@ void MainWindow::on_Butono_Cor_clicked()
          if ( (TlfEcart[i] != 0) && (TlfEcart[j]!=0))
             lfTmp= lfTmp/TlfEcart[i]/TlfEcart[j];
          else lfTmp=0;
-         ui->TW_Cor->setItem(j,i,new QTableWidgetItem(QString("%1").arg(lfTmp,0,'g',3)));
+         QTableWidgetItem *item=new QTableWidgetItem(QString("%1").arg(lfTmp,0,'g',3));
+         //int brillance=trunc(abs(lfTmp*127));
+         //item->setBackground(QColor(100+brillance/2,100+brillance,100+brillance/2));
+         //item->setForeground(QColor(128+brillance,128+brillance,128+brillance));
+
+         if(lfTmp>0.9 || lfTmp<-0.9)
+           item->setForeground(Qt::red);
+         else if(lfTmp>0.5 || lfTmp<-0.5)
+           item->setForeground(Qt::magenta);
+         else if(lfTmp>0.3 || lfTmp<-0.3)
+           item->setForeground(Qt::darkMagenta);
+         else
+           item->setForeground(Qt::gray);
+
+         ui->TW_Cor->setItem(j,i,item);
+         //ui->TW_Cor->setItem(j,i,new QTableWidgetItem(QString("%1").arg(lfTmp,0,'g',3)));
       }
     }
   }
@@ -354,13 +371,14 @@ double getvari(int x)
   return TlfVar[x-1];
 }
 
-// on va faire une régression linéaire en rajoutant l'une des variables non traitées
+//Régression linéaire multiple :
 // on utilise la méthode des moindres carrés «ordinaire» (i.e. sur l'ordonnée= en vertical)
+// avec n variables (V0 à Vn-1) :
 // droite cherchée : f(x) = A0 * V0 + A1 * V1 ....+ An-1 * Vn-1 + An
-// somme des carrés = somme( (Y-f(x))carré )
-//                  = somme ( (Y - A0*V0 -A1*V1... -An ) Carré )
-//                  = somme ( YCarré) + AiCarré*somme(ViCarré) + AnCarré*somme(1)
-//                      + 2*Ai*Aj*somme[(Vi*Vj)]...(pour i!=j)
+// somme des carrés = somme( (Y-f(x)) * (Y-f(x)) )
+//                  = somme ( (Y - A0*V0 -A1*V1... -An ) * (Y - A0*V0 -A1*V1... -An ) )
+//                  = somme ( Y*Y) + Ai*Ai*somme(Vi*Vi) + An*An*somme(1)
+//                      + 2*Ai*Aj*somme[(Vi*Vj)]...(pour j de 0 à n-1 avec j!=i)
 //                      - 2*Ai*somme(Y*Vi)
 //                      + 2*An*Ai*somme(Vi)
 //                      - 2*An*somme(Y)
@@ -369,12 +387,20 @@ double getvari(int x)
 //      pour tout i : d S/ d Ai = 0
 //      pour i<n : d S / d Ai = d AiCarré*somme(ViCarré) + 2*Ai*Aj*somme (Vi*Vj)pour(j!=i) -2*Ai*somme(Y*Vi)
 //                                +  2*An*Ai*somme(Vi)/ d Ai
-//              = 2*Ai*somme(ViCarré) +2*Aj*somme(Vj*Vi) -2*somme(Y*Vi) +2*An*somme(Y*Vi)
-//          Aj*somme(Vj*Vi)...(pour i=0...n-1) + (An - 1)*somme(Y*Vi) = 0
-//      pour i=n : d S / d An =
+//              = 2*Ai*somme(Vi*Vi) +2*Aj*somme(Vj*Vi) -2*somme(Y*Vi) +2*An*somme(Vi)
+//              -->       Ai*somme(Vi*Vi)
+//                        + Aj*somme(Vj*Vi)...(pour tout j de 0 à n-1 avec j!=i)
+//                        + An*somme(Vi)
+//                        - somme(Y*Vi)
+//                                = 0
+//      pour i=n : d S / d An = 2*An*somme(1)
+//                                + 2*Ai*somme(Vi)...(pour i de 0 à n-1)
+//                                - 2*somme(Y)
+//              -->     Ai*somme(Vi) + An*somme(1) - somme(Y) = 0
 //
-// tVars = tableau des variables imposées (attention, commence à 1)
-// nbvars = nb de variables déjà dans le tableau
+//
+// tVars = tableau des variables imposées
+// nbvars = nb de variables total (on a donc nbvars-1 variables déjà dans le tableau)
 void MainWindow::RegLin(int *tVars, int nbvars)
 {
  int varY;// numéro de la variable à expliquer
@@ -386,20 +412,16 @@ void MainWindow::RegLin(int *tVars, int nbvars)
  int ligne;//N° de ligne dans la QTableWidget;
   ligne=nbvars-1;
   varY=ui->SB_Reg_V0->value()-1;
-  ui->TW_RegLin->setColumnCount(nbvars+4);
-  ui->TW_RegLin->setRowCount(nbvars+4);
   // on calcule la droite la plus proche pour chaque variable non traitée
   for (x=0 ; x<NbVar ; x++)
   {
     if ((! TVarIsNum[x]) || (x==varY)) continue; // sauter les variables non numériques et varY
-    tVars[nbvars-1]= x;
     // sauter les variables déjà intégrées
-    for (i=1 ; i<nbvars ; i++)
+    for (i=0 ; i<nbvars-1 ; i++)
        if ((x==tVars[i]) || (varY==x)) break;
     // si on est sorti de la boucle précédente par le break, on saute cette variable :
-    if ( (i<nbvars) && ((x==tVars[i]) || (varY==x))) continue;
-    // on ajoute une ligne dans l'affichage
-    ui->TW_RegLin->setRowCount(ligne+1);
+    if ( (i<nbvars-1) && ((x==tVars[i]) || (varY==x))) continue;
+    tVars[nbvars-1]= x;
     // remplir la matrice des équations à résoudre
     for (i=0 ; i<nbvars ; i++)
     {
@@ -419,27 +441,15 @@ void MainWindow::RegLin(int *tVars, int nbvars)
     for (i=0 ; i<nbvars ; i++)
     {
       formule.append(QString("-%1").arg(tVars[i]+1));
-      ui->TW_RegLin->setItem(ligne,4+i,new QTableWidgetItem(QString("%1").arg(tVars[i]+1)));
+      ModelRegLin.setData(ligne,4+i,QString("%1").arg(tVars[i]+1));
+      //ui->TV_RegLin->setItem(ligne,4+i,new QTableWidgetItem(QString("%1").arg(tVars[i]+1)));
     }
-    ui->TW_RegLin->setItem(ligne,0,new QTableWidgetItem(formule));
+    ModelRegLin.setData(ligne,0,formule);
 
     formule=QString("%1").arg(-TlfMat[nbvars][nbvars+1]);
     for (j=0 ; j<nbvars ; j++)
-    {
-      tmpstr=QString("%1").arg(-TlfMat[j][nbvars+1]);
-      l=0; virgule=false;
-      for (k=0 ; k<tmpstr.length() ; k++)
-      {
-        tmpc=tmpstr[k];
-        if ( (tmpc==',') || (tmpc=='.')) virgule=true;
-        else if ( tmpc.isDigit()) l++;
-        if ( (l>=4) && virgule ) break;
-      }
-      formule.append(QString("+:%1*%2").arg(tVars[j]+1).arg(tmpstr.first(k)));
-      if (tmpstr.contains('E'))
-        formule.append(tmpstr.mid(tmpstr.indexOf('E'),10));
-    }
-    ui->TW_RegLin->setItem(ligne,1,new QTableWidgetItem(formule));
+      formule.append(QString("+:%1*%2").arg(tVars[j]+1).arg(-TlfMat[j][nbvars+1],0,'G',4));
+    ModelRegLin.setData(ligne,1,formule);
     //calcul moyenne et écart type
     lfS=0;
     lfSC=0;
@@ -490,7 +500,7 @@ void MainWindow::RegLin(int *tVars, int nbvars)
     lfTmp=(lfSC2/LPoints-lfS2*lfS2/LPoints/LPoints);
     if (lfTmp >0) lfTmp=sqrt(lfTmp);
     else lfTmp=0;
-    ui->TW_RegLin->setItem(ligne,2,new QTableWidgetItem(QString("%1").arg(lfTmp)));
+    ModelRegLin.setData(ligne,2,QString("%1").arg(lfTmp));
     // calcul correlation Z et variable
     // d'abord calcul ecart type de Z :
     lfTmp=lfSC/LPoints-lfS*lfS/LPoints/LPoints;
@@ -500,32 +510,11 @@ void MainWindow::RegLin(int *tVars, int nbvars)
     if (( TlfEcart[varY]!= 0) && (lfEcart>0))
        lfTmp= lfTmp/TlfEcart[varY]/lfEcart;
     else lfTmp=0;
-    ui->TW_RegLin->setItem(ligne,3,new QTableWidgetItem(QString("%1").arg(lfTmp)));
-    //ui->TW_RegLin->setItem(ligne,3,new QTableWidgetItem(lfTmp));
+    ModelRegLin.setData(ligne,3,QString("%1").arg(lfTmp));
+    //ui->TV_RegLin->setItem(ligne,3,new QTableWidgetItem(lfTmp));
     ligne++;
   }//for x
-  //ui->TW_RegLin->sortItems(3,Qt::DescendingOrder);
-/*
- // trier les lignes :
- for i:= nbvars to ligne-2 do
-  begin
-   for j:=i+1 to ligne-1 do
-    begin
-     cor1:=StrToFloat(form1.SGData2.cells[3,i]);
-     cor2:=StrToFloat(form1.SGData2.cells[3,j]);
-     if cor2 >cor1 then
-      begin
-       form1.SGData2.rows[0]:=form1.SGData2.rows[i];
-       form1.SGData2.rows[i]:=form1.SGData2.rows[j];
-       form1.SGData2.rows[j]:=form1.SGData2.rows[0];
-      end;
-    end;
-  end;
-*/
-  ui->TW_RegLin->setHorizontalHeaderItem(0,new QTableWidgetItem("variables"));
-  ui->TW_RegLin->setHorizontalHeaderItem(1,new QTableWidgetItem("formule"));
-  ui->TW_RegLin->setHorizontalHeaderItem(2,new QTableWidgetItem("EC(f-variable)"));
-  ui->TW_RegLin->setHorizontalHeaderItem(3,new QTableWidgetItem("correlation"));
+  ModelRegLin.sortN(3,nbvars-1,0,false); // trier
 }
 
 // calcul des régressions linéaires
@@ -534,52 +523,40 @@ void MainWindow::on_PBRegLin_clicked()
  int nbVars;
  int tVars[MAXVAR];
  int nbImp;
-  tVars[0]= 0;
-  nbVars=1;
-  RegLin(tVars,nbVars);
-  return;
   if(ui->SBNbImp->value() >0)
-  {
-    tVars[1]=ui->SBVar1->value();
-    nbVars=2;
-    RegLin(tVars,nbVars);
-  }
+    tVars[0]=ui->SBVar1->value()-1;
   if(ui->SBNbImp->value() >1)
-  {
-    tVars[2]=ui->SBVar2->value();
-    nbVars=3;
-    RegLin(tVars,nbVars);
-  }
+    tVars[1]=ui->SBVar2->value()-1;
   if(ui->SBNbImp->value() >2)
-  {
-    tVars[3]=ui->SBVar3->value();
-    nbVars=4;
-    RegLin(tVars,nbVars);
-  }
+    tVars[2]=ui->SBVar3->value()-1;
   if(ui->SBNbImp->value() >3)
-  {
-    tVars[4]=ui->SBVar4->value();
-    nbVars=5;
-    RegLin(tVars,nbVars);
-  }
+    tVars[3]=ui->SBVar4->value()-1;
   if(ui->SBNbImp->value() >4)
+    tVars[4]=ui->SBVar5->value()-1;
+  nbVars = ui->SBNbVars->value();
+  ModelRegLin.setNbHeader(1);
+  ModelRegLin.clearData();
+  ModelRegLin.header1 << "Variables"<<"formule"<<"EC(f-variable)"<<"corr";
+  for (int i=1 ; i<=nbVars ; i++)
+    ModelRegLin.header1 << QString("V%1").arg(i);
+  for (nbVars=ui->SBNbImp->value()+1 ; nbVars <= ui->SBNbVars->value() ; nbVars++)
   {
-    tVars[5]=ui->SBVar5->value();
-    nbVars=6;
     RegLin(tVars,nbVars);
+    tVars[nbVars-1] = ModelRegLin.data(nbVars-1,nbVars+3).toInt()-1;
   }
-    //tVars[1]:= strToInt(sgdata2.cells[4,1]);
-    //nbVars:=2;
-    //faittest(tVars,nbvars);
-  for (nbVars=ui->SBNbImp->value()+2 ; nbVars <= ui->SBNbVars->value() ; nbVars++)
-  {
-/*    tVars[nbVars-1]= ui->TW_RegLin->itemAt(nbVars+2,nbVars-1)->text().toInt();*/
-    RegLin(tVars,nbVars);
-  }
-
+  ui->TV_RegLin->setModel(&ModelRegLin);
 }
 
 void MainWindow::on_CB_kapo_currentIndexChanged(int index)
 {
   Model.setNbHeader(index);
+}
+
+void MainWindow::on_SBNbImp_valueChanged(int arg1)
+{
+    ui->SBVar1->setEnabled((arg1>=1)?true:false);
+    ui->SBVar2->setEnabled((arg1>=2)?true:false);
+    ui->SBVar3->setEnabled((arg1>=3)?true:false);
+    ui->SBVar4->setEnabled((arg1>=4)?true:false);
+    ui->SBVar5->setEnabled((arg1>=5)?true:false);
 }

@@ -59,6 +59,28 @@ public:
         return rowData;
     }
 
+    bool sortN(int col, int firstrow=0, int count=0, bool asc=true) {
+     if (col >= m_columnCount ) return false;
+     if (firstrow >= rowCount() ) return false;
+     if (count==0) count = rowCount() - firstrow;
+     // tri à bulle
+     for ( int i=0 ; i<count-1 ; i++)
+     {
+       for ( int j=i+1 ; j<count ; j++)
+       {
+         QList<T> rowData1 = m_data[i+firstrow];
+         QList<T> rowData2 = m_data[j+firstrow];
+         double x1 = rowData1.value(col).toDouble();
+         double x2 = rowData2.value(col).toDouble();
+         if ( (asc && x1>x2) || (!asc && x2>x1) )
+         {
+           m_data[i+firstrow]=rowData2;
+           m_data[j+firstrow]=rowData1;
+         }
+       }
+     }
+    }
+
     bool setValue(int row, int column, T value) {
         if (column >= columnCount()) {
             m_columnCount = column + 1;
@@ -127,8 +149,11 @@ public:
     
     int rowCount(const QModelIndex &parent) const;
     int columnCount(const QModelIndex &parent) const;
+    void clearData() {dsvMatrix.clear();};
     QVariant data(const QModelIndex &index, int role) const;
+    QVariant data(int ligne,int colonne) const;
     bool setData(const QModelIndex &index, const QVariant &value, int role);
+    bool setData(int ligne,int colonne, const QVariant &value);
     Qt::ItemFlags flags(const QModelIndex &index) const;
 
     bool loadFromFile(const QString &fileName, const QChar &delim = '\000');
@@ -148,6 +173,11 @@ public:
     QStringList header1,header2;
     QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
     void setNbHeader(int nb);
+    bool sortN(int col, int firstrow=0, int count=0, bool asc=true) {
+        bool res= dsvMatrix.sortN(col,firstrow,count,asc);
+        
+        return res;
+    }
 signals:
     
 public slots:

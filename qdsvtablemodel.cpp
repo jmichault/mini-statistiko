@@ -49,11 +49,21 @@ QVariant QDsvTableModel::data(const QModelIndex &index, int role) const
     return QVariant();
 }
 
+QVariant QDsvTableModel::data(int ligne,int colonne) const
+{
+  return dsvMatrix.at(ligne, colonne);
+}
+
 bool QDsvTableModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
     if (index.isValid() && role == Qt::EditRole)
         return dsvMatrix.setValue(index.row(), index.column(), value.toString());
     return false;
+}
+
+bool QDsvTableModel::setData(int ligne,int colonne, const QVariant &value)
+{
+   return dsvMatrix.setValue(ligne, colonne, value.toString());
 }
 
 Qt::ItemFlags QDsvTableModel::flags(const QModelIndex &index) const
