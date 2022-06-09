@@ -51,9 +51,45 @@
        <item>
         <layout class="QVBoxLayout" name="verticalLayout_6">
          <item>
+          <widget class="QComboBox" name="CB_Apartigilo">
+           <property name="toolTip">
+            <string>apartigilo</string>
+           </property>
+           <property name="editable">
+            <bool>true</bool>
+           </property>
+           <property name="currentText">
+            <string>;</string>
+           </property>
+           <item>
+            <property name="text">
+             <string extracomment="komo">,</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string extracomment="punktokomo">;</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string extracomment="tabo">\t</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string extracomment="Elektu poste"/>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item>
           <widget class="QPushButton" name="Butono_sxargi">
+           <property name="toolTip">
+            <string>ŝarĝu la datumdosieron en la langeto &quot;Datumoj&quot;.</string>
+           </property>
            <property name="text">
-            <string>Ŝargi</string>
+            <string>Ŝargu</string>
            </property>
           </widget>
          </item>
@@ -62,22 +98,45 @@
        <item>
         <layout class="QVBoxLayout" name="verticalLayout_7">
          <item>
-          <widget class="QCheckBox" name="CBGroupe">
-           <property name="enabled">
-            <bool>false</bool>
+          <layout class="QHBoxLayout" name="horizontalLayout_5">
+           <property name="sizeConstraint">
+            <enum>QLayout::SetMinimumSize</enum>
            </property>
-           <property name="text">
-            <string>Grouper</string>
+           <property name="bottomMargin">
+            <number>4</number>
            </property>
-          </widget>
+           <item>
+            <widget class="QCheckBox" name="CBGroupe">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="locale">
+              <locale language="Esperanto" country="World"/>
+             </property>
+             <property name="text">
+              <string>Groupigi</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QSpinBox" name="SBGroupe">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+            </widget>
+           </item>
+          </layout>
          </item>
          <item>
-          <widget class="QPushButton" name="Butono_Cor">
+          <widget class="QPushButton" name="Butono_Kor">
            <property name="enabled">
             <bool>false</bool>
            </property>
+           <property name="toolTip">
+            <string>Komputu Korelacioj</string>
+           </property>
            <property name="text">
-            <string>Corrélations</string>
+            <string>Korelacioj</string>
            </property>
           </widget>
          </item>
@@ -105,11 +164,11 @@
        <bool>true</bool>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="tab_data">
        <attribute name="title">
-        <string>Datoj</string>
+        <string>Datumoj</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_4">
         <item>
@@ -141,7 +200,7 @@
                 <bool>false</bool>
                </property>
                <property name="currentText">
-                <string comment="pas d'entête">1 ligne d'entête</string>
+                <string comment="pas d'entête">Unu kaplinio</string>
                </property>
                <property name="currentIndex">
                 <number>1</number>
@@ -151,49 +210,58 @@
                </property>
                <item>
                 <property name="text">
-                 <string>Pas d'entête</string>
+                 <string>Neniu kaplinioj</string>
                 </property>
                </item>
                <item>
                 <property name="text">
-                 <string>1 ligne d'entête</string>
+                 <string>Unu kaplinio</string>
                 </property>
                </item>
                <item>
                 <property name="text">
-                 <string>2 lignes d'entête</string>
+                 <string>Du kaplinioj</string>
                 </property>
                </item>
               </widget>
              </item>
              <item>
-              <widget class="QPushButton" name="pushButton_6">
+              <widget class="QPushButton" name="PBForigu">
+               <property name="enabled">
+                <bool>false</bool>
+               </property>
                <property name="text">
-                <string>PushButton</string>
+                <string>Forigu kolumnon</string>
                </property>
               </widget>
              </item>
              <item>
-              <widget class="QPushButton" name="pushButton_7">
-               <property name="text">
-                <string>PushButton</string>
+              <widget class="QLineEdit" name="LEFormule">
+               <property name="enabled">
+                <bool>true</bool>
+               </property>
+               <property name="toolTip">
+                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Formulo por uzi por &amp;quot;Aldonu kolumnon&amp;quot;. Ekzemplo: :2+:3*4.51&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                </property>
               </widget>
              </item>
              <item>
-              <widget class="QLineEdit" name="lineEdit"/>
-             </item>
-             <item>
-              <widget class="QPushButton" name="pushButton_8">
+              <widget class="QPushButton" name="PBAldonu">
+               <property name="enabled">
+                <bool>true</bool>
+               </property>
                <property name="text">
-                <string>PushButton</string>
+                <string>Aldonu kolumnon</string>
                </property>
               </widget>
              </item>
              <item>
-              <widget class="QPushButton" name="pushButton_9">
+              <widget class="QPushButton" name="PBKonservu">
+               <property name="enabled">
+                <bool>false</bool>
+               </property>
                <property name="text">
-                <string>PushButton</string>
+                <string>Konservu datumojn</string>
                </property>
               </widget>
              </item>
@@ -225,7 +293,7 @@
         <bool>true</bool>
        </property>
        <attribute name="title">
-        <string>Corrélations</string>
+        <string>Korelacioj</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout">
         <item row="0" column="0">
@@ -242,7 +310,7 @@
         <bool>true</bool>
        </property>
        <attribute name="title">
-        <string>Régression linéaire</string>
+        <string>Linearaj regresoj</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_3">
         <item>
@@ -265,7 +333,7 @@
              <item>
               <widget class="QLabel" name="label">
                <property name="text">
-                <string>Variable à expliquer :</string>
+                <string>Dependa variablo</string>
                </property>
               </widget>
              </item>
@@ -292,12 +360,15 @@
              <item>
               <widget class="QLabel" name="label_2">
                <property name="text">
-                <string>Variables imposées :</string>
+                <string>Truditaj variabloj:</string>
                </property>
               </widget>
              </item>
              <item>
               <widget class="QSpinBox" name="SBNbImp">
+               <property name="toolTip">
+                <string>Nombro</string>
+               </property>
                <property name="maximum">
                 <number>5</number>
                </property>
@@ -307,6 +378,9 @@
               <widget class="QSpinBox" name="SBVar1">
                <property name="enabled">
                 <bool>false</bool>
+               </property>
+               <property name="toolTip">
+                <string>Unua variablo</string>
                </property>
                <property name="minimum">
                 <number>1</number>
@@ -321,6 +395,9 @@
                <property name="enabled">
                 <bool>false</bool>
                </property>
+               <property name="toolTip">
+                <string>Dua variablo</string>
+               </property>
                <property name="minimum">
                 <number>1</number>
                </property>
@@ -330,6 +407,9 @@
               <widget class="QSpinBox" name="SBVar3">
                <property name="enabled">
                 <bool>false</bool>
+               </property>
+               <property name="toolTip">
+                <string>Tria variablo</string>
                </property>
                <property name="minimum">
                 <number>1</number>
@@ -341,6 +421,9 @@
                <property name="enabled">
                 <bool>false</bool>
                </property>
+               <property name="toolTip">
+                <string>Kvara variablo</string>
+               </property>
                <property name="minimum">
                 <number>1</number>
                </property>
@@ -350,6 +433,9 @@
               <widget class="QSpinBox" name="SBVar5">
                <property name="enabled">
                 <bool>false</bool>
+               </property>
+               <property name="toolTip">
+                <string>Kvina variablo</string>
                </property>
                <property name="minimum">
                 <number>1</number>
@@ -363,7 +449,7 @@
              <item>
               <widget class="QLabel" name="label_3">
                <property name="text">
-                <string>Nb de variables à ajouter :</string>
+                <string>Nombro da variabloj:</string>
                </property>
               </widget>
              </item>
@@ -380,7 +466,7 @@
              <item>
               <widget class="QPushButton" name="PBRegLin">
                <property name="text">
-                <string>Computi</string>
+                <string>Komputi</string>
                </property>
               </widget>
              </item>
@@ -422,16 +508,6 @@
    </layout>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
-  <widget class="QMenuBar" name="menubar">
-   <property name="geometry">
-    <rect>
-     <x>0</x>
-     <y>0</y>
-     <width>872</width>
-     <height>20</height>
-    </rect>
-   </property>
-  </widget>
  </widget>
  <resources/>
  <connections/>

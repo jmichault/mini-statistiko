@@ -127,7 +127,7 @@ void MainWindow::litVar(int ligne)
   TlfVar[0]=1;
   if (Donnees)
   {
-    for (i=0 ; i<NbVar ; i++)
+    for (i=0 ; i<Model.columnCount() ; i++)
     {
       if (TVarIsNum[i])
       {
@@ -151,12 +151,17 @@ MainWindow::~MainWindow()
 void MainWindow::on_Butono_sxargi_clicked()
 {
   Model.setNbHeader(0);
+  for (int i=0 ; i<MAXVAR ; i++)
+    TVarIsNum[i] = true;// au départ on suppose que toutes les variables sont numériques
+
     QString fileName = QFileDialog::getOpenFileName(this, ("Open File"), ".", ("Fichier Texte(*.csv *.txt)"));
     if (!fileName.isEmpty()) {
-        QString extension = QFileInfo(QFile(fileName)).completeSuffix();
-        if (extension.toLower() == "csv" || extension.toLower() == "tsv") //known file extensions
+        if (ui->CB_Apartigilo->currentText() == "")
+        {
+          QString extension = QFileInfo(QFile(fileName)).completeSuffix();
+          if (extension.toLower() == "csv" || extension.toLower() == "tsv") //known file extensions
             Model.loadFromFile(fileName,';');
-        else {
+          else {
             while (true) {
                 bool ok;
                 QString s = QInputDialog::getText(this, tr("Unknown File Format"),
@@ -168,11 +173,15 @@ void MainWindow::on_Butono_sxargi_clicked()
                     break;
                 }
             }
+          }
         }
+        else if (ui->CB_Apartigilo->currentText() == "\\t")
+          Model.loadFromFile(fileName,'\t');
+        else  Model.loadFromFile(fileName,ui->CB_Apartigilo->currentText()[0]);
         ui->TV_Datoj->setModel(&Model);
         Donnees = true;
     }
-    ui->Butono_Cor->setEnabled(true);
+    ui->Butono_Kor->setEnabled(true);
     ui->tabWidget->setTabEnabled(1,true);
     ui->tabWidget->setTabEnabled(2,false);
 //    ui->TW_Cor->setEnabled(true);
@@ -180,7 +189,7 @@ void MainWindow::on_Butono_sxargi_clicked()
   Model.setNbHeader(ui->CB_kapo->currentIndex());
 }
 
-void MainWindow::on_Butono_Cor_clicked()
+void MainWindow::on_Butono_Kor_clicked()
 {
  int i,j;
  double lfTmp,lfX,lfY[MAXVAR];
@@ -559,4 +568,26 @@ void MainWindow::on_SBNbImp_valueChanged(int arg1)
     ui->SBVar3->setEnabled((arg1>=3)?true:false);
     ui->SBVar4->setEnabled((arg1>=4)?true:false);
     ui->SBVar5->setEnabled((arg1>=5)?true:false);
+}
+
+void MainWindow::on_PBForigu_clicked()
+{
+ int Kol;
+  //Kol = ui->TV_Datoj->selectionModel()->selectedColumns()[0].row();
+  Kol = ui->TV_Datoj->selectionModel()->currentIndex().row();
+  //Model.deleteColumn(Kol);
+}
+
+void MainWindow::on_PBAldonu_clicked()
+{
+ int Kol;
+  Kol = Model.columnCount();
+  evalExpr(ui->LEFormule->text(),getvars );
+  for (int i=0 ; i<Model.rowCount() ; i++ )
+  {
+    litVar(i);
+    Model.setData(i, Kol, evalTok(getvari));
+  }
+  if(Model.getNbHeader()>=1) Model.header1 << ui->LEFormule->text().arg(Kol+1);
+  Model.headerDataChanged(Qt::Horizontal, 0, Model.header1.count());
 }

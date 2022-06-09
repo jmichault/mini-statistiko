@@ -19,13 +19,17 @@ public:
 private slots:
     void on_Butono_sxargi_clicked();
 
-    void on_Butono_Cor_clicked();
+    void on_Butono_Kor_clicked();
 
     void on_PBRegLin_clicked();
 
     void on_CB_kapo_currentIndexChanged(int index);
 
     void on_SBNbImp_valueChanged(int arg1);
+
+    void on_PBForigu_clicked();
+
+    void on_PBAldonu_clicked();
 
 private:
     QDsvTableModel Model;

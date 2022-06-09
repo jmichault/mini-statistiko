@@ -148,7 +148,9 @@ public:
     explicit QDsvTableModel(QObject *parent = 0);
     
     int rowCount(const QModelIndex &parent) const;
+    int rowCount() {return dsvMatrix.rowCount();};
     int columnCount(const QModelIndex &parent) const;
+    int columnCount() {return dsvMatrix.columnCount();};
     void clearData() {dsvMatrix.clear();};
     QVariant data(const QModelIndex &index, int role) const;
     QVariant data(int ligne,int colonne) const;
@@ -173,6 +175,7 @@ public:
     QStringList header1,header2;
     QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
     void setNbHeader(int nb);
+    int getNbHeader() const {return nbHeader;};
     bool sortN(int col, int firstrow=0, int count=0, bool asc=true) {
         bool res= dsvMatrix.sortN(col,firstrow,count,asc);
         
