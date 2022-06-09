@@ -371,7 +371,7 @@ void resoutMatrice(int n)
 int getvars(QString x)
 {
   for ( int i=0 ; i<NbVar ; i++ )
-    if (x==AsNomsVar[i]) return i;
+    if (x==AsNomsVar[i]) return i+1;
   return -1;
 }
 
@@ -582,6 +582,7 @@ void MainWindow::on_PBAldonu_clicked()
 {
  int Kol;
   Kol = Model.columnCount();
+  litNomsVar();
   evalExpr(ui->LEFormule->text(),getvars );
   for (int i=0 ; i<Model.rowCount() ; i++ )
   {

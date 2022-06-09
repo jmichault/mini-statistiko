@@ -101,6 +101,7 @@ void EvalExpr2(QString sExpr,TF2 getvars, bool init=true)
       if (sExpr[posErr]==' ') posErr++;
       else break;
     }
+    if(posErr) {sExpr=sExpr.mid(posErr);posErr=0;}
     car1=sExpr[posErr];
     switch (car1.toLatin1())
     {
@@ -174,7 +175,7 @@ void EvalExpr2(QString sExpr,TF2 getvars, bool init=true)
         if (carTest.isLetterOrNumber() ) posErr++;
         else break;
       }
-      sRes=sExpr.mid(0,posErr-1);
+      sRes=sExpr.mid(0,posErr);
       if ( (sRes=="exp") || (sRes=="Ln"))
       { //fonction exponentielle de x ou Log népérien
         for ( i=NbToken+1 ; i>=posVal+2 ; i--)
