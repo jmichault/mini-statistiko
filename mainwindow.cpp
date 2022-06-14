@@ -6,6 +6,7 @@
 #include <QInputDialog>
 #include <QMessageBox>
 #include <QTableWidgetItem>
+#include <QGraphicsTextItem>
 
 #define MAXVAR 100
 #define MinP 0.020
@@ -591,4 +592,60 @@ void MainWindow::on_PBAldonu_clicked()
   }
   if(Model.getNbHeader()>=1) Model.header1 << ui->LEFormule->text().arg(Kol+1);
   Model.headerDataChanged(Qt::Horizontal, 0, Model.header1.count());
+}
+
+void MainWindow::on_PBGraf_clicked()
+{
+    QGraphicsScene *scene = new QGraphicsScene(this);
+    QGraphicsEllipseItem *ellipse;
+    QGraphicsRectItem *rectangle;
+    QGraphicsTextItem *text;
+    QGraphicsLineItem *line;
+    ui->GVGraf->setScene(scene);
+
+    QBrush redBrush(Qt::red);
+    QBrush greenBrush(Qt::green);
+    QBrush blueBrush(Qt::blue);
+    QPen outlinePen(Qt::black);
+    outlinePen.setWidth(2);
+
+  qreal W(ui->GVGraf->width());
+  qreal H(ui->GVGraf->height());
+  if(!Donnees) return;
+ int varX=ui->SBGraVarX->value()-1;
+ int varY=ui->SBGraVarY->value()-1;
+  double moyX=TlfSommes[varX]/LCount;
+  double minX=moyX-2*TlfEcart[varX];
+  double maxX=moyX+2*TlfEcart[varX];
+  double moyY=TlfSommes[varY]/LCount;
+  double minY=moyY-2*TlfEcart[varY];
+  double maxY=moyY+2*TlfEcart[varY];
+  qreal grafX=(moyX-minX)*W/(maxX-minX);
+  qreal grafY=(maxY-moyY)*H/(maxY-minY);
+
+  scene->addLine(2,grafY,W-2,grafY,outlinePen);
+  scene->addLine(grafX,H-2,grafX,2,outlinePen);
+  text = scene->addText(QString("X=%1").arg(minX), QFont("Arial", 8) );
+  text->setPos(1,grafY);
+  text = scene->addText(QString("X=%1").arg(maxX), QFont("Arial", 8) );
+  text->setPos(W - text->boundingRect().width()-1,grafY);
+  text = scene->addText(QString("Y=%1").arg(maxY), QFont("Arial", 8) );
+  text->setPos(grafX,1);
+  text = scene->addText(QString("Y=%1").arg(minY), QFont("Arial", 8) );
+  text->setPos(grafX,H - text->boundingRect().height()-1);
+  for (int i=0 ; i<Model.rowCount() ; i++ )
+  {
+    litVar(i);
+    double X=TlfVar[varX];
+    double Y=TlfVar[varY];
+    grafX=(X-minX)*W/(maxX-minX);
+    grafY=(maxY-Y)*H/(maxY-minY);
+    if ((minX<X && X<maxX) && (minY<Y && Y<maxY))
+    {
+        scene->addLine(grafX-2,grafY,grafX+2,grafY,outlinePen);
+        line = scene->addLine(grafX,grafY-2,grafX,grafY+2,outlinePen);
+        line->setToolTip(QString("X=%1,Y=%2").arg(X).arg(Y));
+    }
+  }
+
 }

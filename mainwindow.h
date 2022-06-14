@@ -31,6 +31,8 @@ private slots:
 
     void on_PBAldonu_clicked();
 
+    void on_PBGraf_clicked();
+
 private:
     QDsvTableModel Model;
     QDsvTableModel ModelRegLin;
