@@ -75,6 +75,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->tabWidget->setTabEnabled(0,true);
     ui->tabWidget->setTabEnabled(1,false);
     ui->tabWidget->setTabEnabled(2,false);
+    ui->tabWidget->setTabEnabled(3,false);
 
 }
 
@@ -185,6 +186,7 @@ void MainWindow::on_Butono_sxargi_clicked()
     ui->Butono_Kor->setEnabled(true);
     ui->tabWidget->setTabEnabled(1,true);
     ui->tabWidget->setTabEnabled(2,false);
+    ui->tabWidget->setTabEnabled(3,false);
 //    ui->TW_Cor->setEnabled(true);
 //    ui->tab_RegLin->setEnabled(false);
   Model.setNbHeader(ui->CB_kapo->currentIndex());
@@ -323,6 +325,7 @@ void MainWindow::on_Butono_Kor_clicked()
   ui->tabWidget->setTabEnabled(0,true);
   ui->tabWidget->setTabEnabled(1,true);
   ui->tabWidget->setTabEnabled(2,true);
+  ui->tabWidget->setTabEnabled(3,true);
 }
 
 
@@ -597,8 +600,6 @@ void MainWindow::on_PBAldonu_clicked()
 void MainWindow::on_PBGraf_clicked()
 {
     QGraphicsScene *scene = new QGraphicsScene(this);
-    QGraphicsEllipseItem *ellipse;
-    QGraphicsRectItem *rectangle;
     QGraphicsTextItem *text;
     QGraphicsLineItem *line;
     ui->GVGraf->setScene(scene);
