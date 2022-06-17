@@ -44,6 +44,9 @@ QString
 double
   TlfMat[MAXPOLY][MAXPOLY]
 ;
+
+int DerPoly;
+
 /******************* *
  TlfMat:array[0..MAXPOLY,0..MAXPOLY+1]of extended;
   lfPoly:array[0..MAXPOLY]of extended;
@@ -51,7 +54,6 @@ double
  Precisionx:integer;//nb de points sur la courbe moyenne
  MinEchX:integer;// nb min de valeurs pour unpoint pour l'afficher
  Ficin:Textfile;
- Derpoly:integer;
 TlfSomme,TlfCompte,TlfCarre:array[0..PRECISIONXMax] of extended;
 TlfA     // coefficients A des plans (Z = a.X + b.Y + c)
   ,TlfB  // coefficients B des plans
@@ -597,22 +599,46 @@ void MainWindow::on_PBAldonu_clicked()
   Model.headerDataChanged(Qt::Horizontal, 0, Model.header1.count());
 }
 
+static void remplitmatrice(int n,double tlfSXk[], double tlfSXkY[],int nbPoints)
+{
+  for ( int i=0 ; i<=n ; i++)
+  {
+    for (int j=0 ; j<=n ; j++)
+    {
+      TlfMat[i][j]=tlfSXk[j+i]/nbPoints;
+      TlfMat[i][n+1]= -tlfSXkY[i]/nbPoints;
+    }
+  }
+}
+
 void MainWindow::on_PBGraf_clicked()
 {
-    QGraphicsScene *scene = new QGraphicsScene(this);
-    QGraphicsTextItem *text;
-    QGraphicsLineItem *line;
-    ui->GVGraf->setScene(scene);
-
-    QBrush redBrush(Qt::red);
-    QBrush greenBrush(Qt::green);
-    QBrush blueBrush(Qt::blue);
-    QPen outlinePen(Qt::black);
-    outlinePen.setWidth(2);
-
-  qreal W(ui->GVGraf->width());
-  qreal H(ui->GVGraf->height());
   if(!Donnees) return;
+
+ QGraphicsScene *scene = new QGraphicsScene(this);
+ QGraphicsTextItem *text;
+ QGraphicsLineItem *line;
+ ui->GVGraf->setScene(scene);
+
+ QBrush redBrush(Qt::red);
+ QBrush greenBrush(Qt::green);
+ QBrush blueBrush(Qt::blue);
+ QPen outlinePen(Qt::black);
+ outlinePen.setWidth(2);
+
+  DerPoly=ui->SBDerPoly->value();
+  // calcul des polynômes : préparation
+  double TlfSXk[MAXPOLY*2+2];
+  double TlfSXkY[MAXPOLY*2+2];
+  for (int i=0 ; i<2*DerPoly ; i++)
+  {
+    TlfSXk[i]=0;
+    TlfSXkY[i]=0;
+  }
+
+  // dessin du nuage de points :
+ qreal W(ui->GVGraf->width());
+ qreal H(ui->GVGraf->height());
  int varX=ui->SBGraVarX->value()-1;
  int varY=ui->SBGraVarY->value()-1;
   double moyX=TlfSommes[varX]/LCount;
@@ -647,6 +673,37 @@ void MainWindow::on_PBGraf_clicked()
         line = scene->addLine(grafX,grafY-2,grafX,grafY+2,outlinePen);
         line->setToolTip(QString("X=%1,Y=%2").arg(X).arg(Y));
     }
+    // préparation polynômes :
+    double lfTmp=1.0;
+    for (int j=0 ; j<=2*DerPoly ; j++)
+    {
+      TlfSXk[j]=TlfSXk[j]+lfTmp;
+      lfTmp=lfTmp*TlfVar[varX];
+    }
+    lfTmp=TlfVar[varY];
+    for (int j=0 ; j<=DerPoly ; j++)
+    {
+      TlfSXkY[j]=TlfSXkY[j]+lfTmp;
+      lfTmp=lfTmp*TlfVar[varX];
+    }
+
   }
+  // calcul des polynômes :
+  for (int i=0 ; i<=DerPoly ; i++)
+  {
+    remplitmatrice(i,TlfSXk,TlfSXkY,LPoints);
+    resoutMatrice(i);
+    // affichage des coefficients :
+    //for (int j=0 ; j<= i ; j++)
+    //  SGPoly.cells[i+1,j+1]:=floatToStr(-TlfMat[j,i+1]);
+  }
+  // affichage des polynômes :
+  for (int i=0 ; i<=DerPoly ; i++)
+  {
+    //if ( i>0) SGPoly.cells[0,i+1]:='+ x'+IntTostr(i);
+    //else SGPoly.cells[0,i+1]:='1';
+    //SGPoly.cells[i+1,0]:='P'+IntTostr(i);
+  }
+
 
 }
