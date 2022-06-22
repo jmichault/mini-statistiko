@@ -439,7 +439,7 @@ void MainWindow::RegLin(int *tVars, int nbvars, int ligne)
     TlfMat[nbvars][nbvars+1] = -TlfSommes[varY];
     // résoudre la matrice
     resoutMatrice(nbvars);
-    //afficher le polynome
+    //afficher la liste des variables
     formule="";
     for (int i=0 ; i<nbvars ; i++)
     {
@@ -448,21 +448,58 @@ void MainWindow::RegLin(int *tVars, int nbvars, int ligne)
       //ui->TV_RegLin->setItem(ligne,4+i,new QTableWidgetItem(QString("%1").arg(tVars[i]+1)));
     }
     ModelRegLin.setData(ligne,0,formule);
-
-    formule=QString("%1").arg(-TlfMat[nbvars][nbvars+1]);
-    if (ui->CBNomoj->isChecked())
+    //
+    // afficher le polynôme
+    formule="";
+    if (ui->CBUzuMoy->isChecked())
     {
-      for (int j=0 ; j<nbvars ; j++)
+      double constante = -TlfMat[nbvars][nbvars+1];
+      if (ui->CBNomoj->isChecked())
       {
-        QString Nomo=ModelDatoj.header1[tVars[j]];
-        Nomo.replace(' ','_');
-        formule.append(QString("+%1*%2").arg(Nomo).arg(-TlfMat[j][nbvars+1],0,'G',4));
+        for (int j=0 ; j<nbvars ; j++)
+        {
+          QString Nomo=ModelDatoj.header1[tVars[j]];
+          Nomo.replace(' ','_');
+          double moy=TlfSommes[tVars[j]]/LCount;
+          constante += moy*(-TlfMat[j][nbvars+1]);
+          if (moy>=0.0)
+            formule.append(QString("(%1-%2)*%3+").arg(Nomo).arg(moy,0,'G',4).arg(-TlfMat[j][nbvars+1],0,'G',4));
+          else
+            formule.append(QString("(%1%2)*%3+").arg(Nomo).arg(moy,0,'G',4).arg(-TlfMat[j][nbvars+1],0,'G',4));
+        }
+        if(constante <0)
+            formule.truncate(formule.length()-1);
+        formule.append(QString("%1").arg(constante,0,'G',4));
       }
+      else
+      {
+        for (int j=0 ; j<nbvars ; j++)
+        {
+          double moy=TlfSommes[j]/LCount;
+          constante += -moy*(-TlfMat[j][nbvars+1]);
+          formule.append(QString(":%1*%2+").arg(tVars[j]+1).arg(-TlfMat[j][nbvars+1],0,'G',4));
+        }
+        formule.append(QString("%1").arg(constante,0,'G',4));
+      }
+
     }
     else
     {
-      for (int j=0 ; j<nbvars ; j++)
-        formule.append(QString("+:%1*%2").arg(tVars[j]+1).arg(-TlfMat[j][nbvars+1],0,'G',4));
+      formule=QString("%1").arg(-TlfMat[nbvars][nbvars+1]);
+      if (ui->CBNomoj->isChecked())
+      {
+        for (int j=0 ; j<nbvars ; j++)
+        {
+          QString Nomo=ModelDatoj.header1[tVars[j]];
+          Nomo.replace(' ','_');
+          formule.append(QString("+%1*%2").arg(Nomo).arg(-TlfMat[j][nbvars+1],0,'G',4));
+        }
+      }
+      else
+      {
+        for (int j=0 ; j<nbvars ; j++)
+          formule.append(QString("+:%1*%2").arg(tVars[j]+1).arg(-TlfMat[j][nbvars+1],0,'G',4));
+      }
     }
     ModelRegLin.setData(ligne,1,formule);
 }
