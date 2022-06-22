@@ -117,12 +117,12 @@ void EvalExpr2(QString sExpr,TF2 getvars, bool init=true)
         if (nbPar <1) break;
         posPf++;
       }
-      sExpr2=sExpr.mid(1,posPf-2);// copie de l'expression entre parenthèses
+      sExpr2=sExpr.mid(1,posPf-1);// copie de l'expression entre parenthèses
       sExpr=sExpr.mid(posPf+1,sExpr.length());// suppression dans la chaîne d'origine
-      posErr=1;
+      posErr=0;
       // mémoriser éléments après celui en cours
       nbMem=NbToken-posVal;
-      for (i=1 ; i<=nbMem ; i++)
+      for (i=0 ; i<nbMem ; i++)
         tokMem[i]=lesToken[posVal+i];
       NbToken=posVal;
       // traiter l'expression entre parenthèses
@@ -130,8 +130,8 @@ void EvalExpr2(QString sExpr,TF2 getvars, bool init=true)
       lesToken[NbToken].typeTok=tok_nop;// protéger l'expression
       NbToken++;
       // rétablir les éléments mémorisés
-      for (i=1 ; i<= nbMem ; i++)
-        lesToken[NbToken+i-1]=tokMem[i];
+      for (i=0 ; i< nbMem ; i++)
+        lesToken[NbToken+i]=tokMem[i];
       NbToken += nbMem;
       break;
      case ':':  // c'est une variable donnée par son indice
@@ -172,7 +172,7 @@ void EvalExpr2(QString sExpr,TF2 getvars, bool init=true)
       {
         if (posErr >= sExpr.length()) break;
         carTest=sExpr[posErr];
-        if (carTest.isLetterOrNumber() ) posErr++;
+        if (carTest=='_' || carTest.isLetterOrNumber() ) posErr++;
         else break;
       }
       sRes=sExpr.mid(0,posErr);
@@ -196,7 +196,7 @@ void EvalExpr2(QString sExpr,TF2 getvars, bool init=true)
         // retrouver cette variable
         lesToken[posVal].indice=getvars(sRes);
         // gérer l'erreur si on ne trouve pas la variable;
-        if ( lesToken[posVal].valeur==-1)
+        if ( lesToken[posVal].indice==-1)
         {
           QMessageBox msgBox;
           msgBox.setText("variable "+sRes+" inconnue");

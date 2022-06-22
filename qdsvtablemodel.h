@@ -22,6 +22,7 @@
 #define QDSVTABLEMODEL_H
 
 #include <QAbstractTableModel>
+static int sortCol;
 
 //a template-based matrix to store 2D data
 template<class T>
@@ -58,28 +59,33 @@ public:
         QList<T> rowData = m_data.at(row);
         return rowData;
     }
-
-    bool sortN(int col, int firstrow=0, int count=0, bool asc=true) {
-     if (col >= m_columnCount ) return false;
-     if (firstrow >= rowCount() ) return false;
-     if (count==0) count = rowCount() - firstrow;
-     // tri à bulle
-     for ( int i=0 ; i<count-1 ; i++)
-     {
-       for ( int j=i+1 ; j<count ; j++)
-       {
-         QList<T> rowData1 = m_data[i+firstrow];
-         QList<T> rowData2 = m_data[j+firstrow];
-         double x1 = rowData1.value(col).toDouble();
-         double x2 = rowData2.value(col).toDouble();
-         if ( (asc && x1>x2) || (!asc && x2>x1) )
-         {
-           m_data[i+firstrow]=rowData2;
-           m_data[j+firstrow]=rowData1;
-         }
-       }
-     }
+    static bool compareN(const QList<T>  &x1, const QList<T> &x2)
+    {
+        bool ok1,ok2;
+        double d1,d2;
+        d1=x1.value(sortCol).toDouble(&ok1);
+        d2=x2.value(sortCol).toDouble(&ok2);
+        if (ok1 && ok2) return (d1 < d2);
+        else return (x1.value(sortCol) < x2.value(sortCol));
     }
+    static bool compareNdesc(const QList<T>  &x1, const QList<T> &x2)
+    {
+        bool ok1,ok2;
+        double d1,d2;
+        d1=x1.value(sortCol).toDouble(&ok1);
+        d2=x2.value(sortCol).toDouble(&ok2);
+        if (ok1 && ok2) return (d1 > d2);
+        else return (x1.value(sortCol) > x2.value(sortCol));
+    }
+    bool sortN(int col, int firstrow=0, int count=0, Qt::SortOrder order = Qt::AscendingOrder){
+        if (col >= m_columnCount ) return false;
+        if (firstrow >= rowCount() ) return false;
+        sortCol=col;
+        if (count==0) count = rowCount() - firstrow;
+        if (order==Qt::AscendingOrder) std::sort(m_data.begin()+firstrow,m_data.begin()+firstrow+count,&compareN);
+        else std::sort(m_data.begin()+firstrow,m_data.begin()+firstrow+count,&compareNdesc);
+        return true;
+    };
 
     bool setValue(int row, int column, T value) {
         if (column >= columnCount()) {
@@ -138,7 +144,24 @@ public:
         m_data.remove(i,n);
         m_rowCount -= n;
     }
+    double getDouble(int row, int col){
+        QList<T> rowData1 = m_data[row];
+        return rowData1.value(col).toDouble();
+    }
+    void removeKol(int Kol)
+    {
+      if (Kol < columnCount()) {
+        for (int i = 0; i < rowCount(); ++i)
+        {
+          QList<T> rowData = m_data.at(i);
+          rowData.remove(Kol);
+          m_data[i] = rowData;
+        }
+        m_columnCount --;
+      }
+    }
 };
+
 
 //QDsvTableModel class
 class QDsvTableModel : public QAbstractTableModel
@@ -176,10 +199,28 @@ public:
     QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
     void setNbHeader(int nb);
     int getNbHeader() const {return nbHeader;};
-    bool sortN(int col, int firstrow=0, int count=0, bool asc=true) {
-        bool res= dsvMatrix.sortN(col,firstrow,count,asc);
-        
+    bool sortN(int col, int firstrow=0, int count=0, Qt::SortOrder order = Qt::AscendingOrder) {
+        if(col==sorted && firstrow==0 && count==0 && order==Qt::AscendingOrder) return true;
+        bool res= dsvMatrix.sortN(col,firstrow,count,order);
+        if(firstrow==0 && count==0 && order==Qt::AscendingOrder) sorted=col;
+        else sorted=-1;
+
         return res;
+    }
+    virtual void sort(int column, Qt::SortOrder order = Qt::AscendingOrder)
+    {
+        if(column<0 || column>=columnCount()) return;
+        layoutAboutToBeChanged();
+        sortN(column,0,0,order);
+        layoutChanged();
+
+    }
+    void removeKol(int Kol)
+    {
+      if(Kol <0 ||Kol >=columnCount()) return;
+      dsvMatrix.removeKol(Kol);
+      if(nbHeader>=1) header1.remove(Kol);
+      if(nbHeader>=2) header2.remove(Kol);
     }
 signals:
     
@@ -190,8 +231,7 @@ private:
     QChar delimiter;
     int nbHeader=0;
     void checkString(QString &temp, QList<QString> &list, const QChar &character);
-
-
+    int sorted=-1; //colonne triée
 };
 
 #endif // QDSVTABLEMODEL_H

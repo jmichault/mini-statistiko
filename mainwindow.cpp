@@ -131,7 +131,7 @@ void MainWindow::litVar(int ligne)
   TlfVar[0]=1;
   if (Donnees)
   {
-    for (i=0 ; i<Model.columnCount() ; i++)
+    for (i=0 ; i<ModelDatoj.columnCount() ; i++)
     {
       if (TVarIsNum[i])
       {
@@ -154,17 +154,17 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_Butono_sxargi_clicked()
 {
-  Model.setNbHeader(0);
+  ModelDatoj.setNbHeader(0);
   for (int i=0 ; i<MAXVAR ; i++)
     TVarIsNum[i] = true;// au départ on suppose que toutes les variables sont numériques
 
-    QString fileName = QFileDialog::getOpenFileName(this, ("Open File"), ".", ("Fichier Texte(*.csv *.txt)"));
-    if (!fileName.isEmpty()) {
+  QString fileName = QFileDialog::getOpenFileName(this, ("Open File"), ".", ("Fichier Texte(*.csv *.txt)"));
+  if (!fileName.isEmpty()) {
         if (ui->CB_Apartigilo->currentText() == "")
         {
           QString extension = QFileInfo(QFile(fileName)).completeSuffix();
           if (extension.toLower() == "csv" || extension.toLower() == "tsv") //known file extensions
-            Model.loadFromFile(fileName,';');
+            ModelDatoj.loadFromFile(fileName,';');
           else {
             while (true) {
                 bool ok;
@@ -173,31 +173,29 @@ void MainWindow::on_Butono_sxargi_clicked()
                                                   "", &ok);
                 if (ok && s.size() == 1) {
                     QChar delim = s.constData()[0];
-                    Model.loadFromFile(fileName, delim);
+                    ModelDatoj.loadFromFile(fileName, delim);
                     break;
                 }
             }
           }
         }
         else if (ui->CB_Apartigilo->currentText() == "\\t")
-          Model.loadFromFile(fileName,'\t');
-        else  Model.loadFromFile(fileName,ui->CB_Apartigilo->currentText()[0]);
-        ui->TV_Datoj->setModel(&Model);
+          ModelDatoj.loadFromFile(fileName,'\t');
+        else  ModelDatoj.loadFromFile(fileName,ui->CB_Apartigilo->currentText()[0]);
+        ui->TV_Datoj->setModel(&ModelDatoj);
         Donnees = true;
-    }
-    ui->Butono_Kor->setEnabled(true);
-    ui->tabWidget->setTabEnabled(1,true);
-    ui->tabWidget->setTabEnabled(2,false);
-    ui->tabWidget->setTabEnabled(3,false);
-//    ui->TW_Cor->setEnabled(true);
-//    ui->tab_RegLin->setEnabled(false);
-  Model.setNbHeader(ui->CB_kapo->currentIndex());
+  }
+  ui->Butono_Kor->setEnabled(true);
+  ui->tabWidget->setTabEnabled(1,true);
+  ui->tabWidget->setTabEnabled(2,false);
+  ui->tabWidget->setTabEnabled(3,false);
+  ModelDatoj.setNbHeader(ui->CB_kapo->currentIndex());
 }
 
 void MainWindow::on_Butono_Kor_clicked()
 {
  int i,j;
- double lfTmp,lfX,lfY[MAXVAR];
+ double lfTmp;
   for (i=0 ; i<MAXVAR ; i++)
   {
     TVarIsNum[i] = true;// au départ on suppose que toutes les variables sont numériques
@@ -377,7 +375,12 @@ void resoutMatrice(int n)
 int getvars(QString x)
 {
   for ( int i=0 ; i<NbVar ; i++ )
-    if (x==AsNomsVar[i]) return i+1;
+  {
+    QString var=AsNomsVar[i];
+    var.replace(' ','_');
+    if (x==var)
+        return i+1;
+  }
   return -1;
 }
 
@@ -414,16 +417,65 @@ double getvari(int x)
 //              -->     Ai*somme(Vi) + An*somme(1) - somme(Y) = 0
 //
 //
-// tVars = tableau des variables imposées
-// nbvars = nb de variables total (on a donc nbvars-1 variables déjà dans le tableau)
-void MainWindow::RegLin(int *tVars, int nbvars)
+// tVars = tableau des variables
+// nbvars = nb de variables
+// ligne = numéro de ligne dans la QTableWidget
+void MainWindow::RegLin(int *tVars, int nbvars, int ligne)
 {
  int varY;// numéro de la variable à expliquer
  QString formule,tmpstr;
- QChar tmpc;
- bool virgule;
- int i,j,k,l,n,x;
- double lfS,lfSC,lfS2,lfSC2,lfP,lfZ,lfVar,lfTmp,lfEcart,lfY,cor1,cor2;
+  varY=ui->SB_Reg_V0->value()-1;
+    // remplir la matrice des équations à résoudre
+    for (int i=0 ; i<nbvars ; i++)
+    {
+      for (int j=0 ; j<nbvars ; j++)
+        TlfMat[i][j]=TlfPdt[tVars[i]][tVars[j]]/LPoints;
+      TlfMat[i][nbvars]= TlfSommes[tVars[i]]/LPoints;
+      TlfMat[i][nbvars+1]= -TlfPdt[tVars[i]][varY]/LPoints;
+    }
+    for (int j=0 ; j<nbvars ; j++)
+      TlfMat[nbvars][j]=TlfSommes[tVars[j]];
+    TlfMat[nbvars][nbvars] = LPoints;
+    TlfMat[nbvars][nbvars+1] = -TlfSommes[varY];
+    // résoudre la matrice
+    resoutMatrice(nbvars);
+    //afficher le polynome
+    formule="";
+    for (int i=0 ; i<nbvars ; i++)
+    {
+      formule.append(QString("-%1").arg(tVars[i]+1));
+      ModelRegLin.setData(ligne,4+i,QString("%1").arg(tVars[i]+1));
+      //ui->TV_RegLin->setItem(ligne,4+i,new QTableWidgetItem(QString("%1").arg(tVars[i]+1)));
+    }
+    ModelRegLin.setData(ligne,0,formule);
+
+    formule=QString("%1").arg(-TlfMat[nbvars][nbvars+1]);
+    if (ui->CBNomoj->isChecked())
+    {
+      for (int j=0 ; j<nbvars ; j++)
+      {
+        QString Nomo=ModelDatoj.header1[tVars[j]];
+        Nomo.replace(' ','_');
+        formule.append(QString("+%1*%2").arg(Nomo).arg(-TlfMat[j][nbvars+1],0,'G',4));
+      }
+    }
+    else
+    {
+      for (int j=0 ; j<nbvars ; j++)
+        formule.append(QString("+:%1*%2").arg(tVars[j]+1).arg(-TlfMat[j][nbvars+1],0,'G',4));
+    }
+    ModelRegLin.setData(ligne,1,formule);
+}
+
+// fait les régressions linéaires en ajoutant une variable à celles déjà sélectionnées
+// tVars = tableau des variables imposées
+// nbvars = nb de variables total (on a donc nbvars-1 variables déjà dans le tableau)
+void MainWindow::RegLins(int *tVars, int nbvars)
+{
+ int varY;// numéro de la variable à expliquer
+ QString formule,tmpstr;
+ int i,x;
+ double lfS,lfSC,lfS2,lfSC2,lfP,lfZ,lfTmp,lfEcart,lfY;
  int ligne;//N° de ligne dans la QTableWidget;
   ligne=nbvars-1;
   varY=ui->SB_Reg_V0->value()-1;
@@ -437,34 +489,7 @@ void MainWindow::RegLin(int *tVars, int nbvars)
     // si on est sorti de la boucle précédente par le break, on saute cette variable :
     if ( (i<nbvars-1) && ((x==tVars[i]) || (varY==x))) continue;
     tVars[nbvars-1]= x;
-    // remplir la matrice des équations à résoudre
-    for (i=0 ; i<nbvars ; i++)
-    {
-      for (j=0 ; j<nbvars ; j++)
-        TlfMat[i][j]=TlfPdt[tVars[i]][tVars[j]]/LPoints;
-      TlfMat[i][nbvars]= TlfSommes[tVars[i]]/LPoints;
-      TlfMat[i][nbvars+1]= -TlfPdt[tVars[i]][varY]/LPoints;
-    }
-    for (j=0 ; j<nbvars ; j++)
-      TlfMat[nbvars][j]=TlfSommes[tVars[j]];
-    TlfMat[nbvars][nbvars] = LPoints;
-    TlfMat[nbvars][nbvars+1] = -TlfSommes[varY];
-    // résoudre la matrice
-    resoutMatrice(nbvars);
-    //afficher le polynome
-    formule="";
-    for (i=0 ; i<nbvars ; i++)
-    {
-      formule.append(QString("-%1").arg(tVars[i]+1));
-      ModelRegLin.setData(ligne,4+i,QString("%1").arg(tVars[i]+1));
-      //ui->TV_RegLin->setItem(ligne,4+i,new QTableWidgetItem(QString("%1").arg(tVars[i]+1)));
-    }
-    ModelRegLin.setData(ligne,0,formule);
-
-    formule=QString("%1").arg(-TlfMat[nbvars][nbvars+1]);
-    for (j=0 ; j<nbvars ; j++)
-      formule.append(QString("+:%1*%2").arg(tVars[j]+1).arg(-TlfMat[j][nbvars+1],0,'G',4));
-    ModelRegLin.setData(ligne,1,formule);
+    RegLin(tVars,nbvars,ligne);
     //calcul moyenne et écart type
     lfS=0;
     lfSC=0;
@@ -472,6 +497,7 @@ void MainWindow::RegLin(int *tVars, int nbvars)
     lfSC2=0;
     lfP=0;
     // Pour chacune des formules trouvées, on calcule écart type et corrélation :
+    formule = ModelRegLin.data(ligne,1).toString();
     evalExpr(formule,getvars);
     int ligneEnCours=0;
     while (ligneEnCours < ui->TV_Datoj->model()->rowCount() )
@@ -529,7 +555,7 @@ void MainWindow::RegLin(int *tVars, int nbvars)
     //ui->TV_RegLin->setItem(ligne,3,new QTableWidgetItem(lfTmp));
     ligne++;
   }//for x
-  ModelRegLin.sortN(3,nbvars-1,0,false); // trier
+  ModelRegLin.sortN(3,nbvars-1,0,Qt::DescendingOrder); // trier
 }
 
 // calcul des régressions linéaires
@@ -537,26 +563,39 @@ void MainWindow::on_PBRegLin_clicked()
 {
  int nbVars;
  int tVars[MAXVAR];
- int nbImp;
-  if(ui->SBNbImp->value() >0)
-    tVars[0]=ui->SBVar1->value()-1;
-  if(ui->SBNbImp->value() >1)
-    tVars[1]=ui->SBVar2->value()-1;
-  if(ui->SBNbImp->value() >2)
-    tVars[2]=ui->SBVar3->value()-1;
-  if(ui->SBNbImp->value() >3)
-    tVars[3]=ui->SBVar4->value()-1;
-  if(ui->SBNbImp->value() >4)
-    tVars[4]=ui->SBVar5->value()-1;
-  nbVars = ui->SBNbVars->value();
   ModelRegLin.setNbHeader(1);
   ModelRegLin.clearData();
   ModelRegLin.header1 << "Variables"<<"formule"<<"EC(f-variable)"<<"corr";
-  for (int i=1 ; i<=nbVars ; i++)
-    ModelRegLin.header1 << QString("V%1").arg(i);
+  for (int i=1 ; i<=ui->SBNbImp->value() ; i++)
+   ModelRegLin.header1 << QString("V%1").arg(i);
+  if(ui->SBNbImp->value() >0)
+  {
+    tVars[0]=ui->SBVar1->value()-1;
+    RegLin(tVars,1,0);
+  }
+  if(ui->SBNbImp->value() >1)
+  {
+    tVars[1]=ui->SBVar2->value()-1;
+    RegLin(tVars,2,1);
+  }
+  if(ui->SBNbImp->value() >2)
+  {
+    tVars[2]=ui->SBVar3->value()-1;
+    RegLin(tVars,3,2);
+  }
+  if(ui->SBNbImp->value() >3)
+  {
+    tVars[3]=ui->SBVar4->value()-1;
+    RegLin(tVars,4,3);
+  }
+  if(ui->SBNbImp->value() >4)
+  {
+    tVars[4]=ui->SBVar5->value()-1;
+    RegLin(tVars,5,4);
+  }
   for (nbVars=ui->SBNbImp->value()+1 ; nbVars <= ui->SBNbVars->value() ; nbVars++)
   {
-    RegLin(tVars,nbVars);
+    RegLins(tVars,nbVars);
     tVars[nbVars-1] = ModelRegLin.data(nbVars-1,nbVars+3).toInt()-1;
   }
   ui->TV_RegLin->setModel(&ModelRegLin);
@@ -564,7 +603,7 @@ void MainWindow::on_PBRegLin_clicked()
 
 void MainWindow::on_CB_kapo_currentIndexChanged(int index)
 {
-  Model.setNbHeader(index);
+  ModelDatoj.setNbHeader(index);
 }
 
 void MainWindow::on_SBNbImp_valueChanged(int arg1)
@@ -579,24 +618,25 @@ void MainWindow::on_SBNbImp_valueChanged(int arg1)
 void MainWindow::on_PBForigu_clicked()
 {
  int Kol;
-  //Kol = ui->TV_Datoj->selectionModel()->selectedColumns()[0].row();
-  Kol = ui->TV_Datoj->selectionModel()->currentIndex().row();
-  //Model.deleteColumn(Kol);
+  //Kol = ui->TV_Datoj->selectionModel()->selectedColumns()[0].column();
+  Kol = ui->TV_Datoj->selectionModel()->currentIndex().column();
+  ModelDatoj.removeKol(Kol);
+  ModelDatoj.headerDataChanged(Qt::Horizontal, 0, ModelDatoj.header1.count());
 }
 
 void MainWindow::on_PBAldonu_clicked()
 {
  int Kol;
-  Kol = Model.columnCount();
+  Kol = ModelDatoj.columnCount();
   litNomsVar();
   evalExpr(ui->LEFormule->text(),getvars );
-  for (int i=0 ; i<Model.rowCount() ; i++ )
+  for (int i=0 ; i<ModelDatoj.rowCount() ; i++ )
   {
     litVar(i);
-    Model.setData(i, Kol, evalTok(getvari));
+    ModelDatoj.setData(i, Kol, evalTok(getvari));
   }
-  if(Model.getNbHeader()>=1) Model.header1 << ui->LEFormule->text().arg(Kol+1);
-  Model.headerDataChanged(Qt::Horizontal, 0, Model.header1.count());
+  if(ModelDatoj.getNbHeader()>=1) ModelDatoj.header1 << ui->LEFormule->text().arg(Kol+1);
+  ModelDatoj.headerDataChanged(Qt::Horizontal, 0, ModelDatoj.header1.count());
 }
 
 static void remplitmatrice(int n,double tlfSXk[], double tlfSXkY[],int nbPoints)
@@ -614,17 +654,23 @@ static void remplitmatrice(int n,double tlfSXk[], double tlfSXkY[],int nbPoints)
 void MainWindow::on_PBGraf_clicked()
 {
   if(!Donnees) return;
-
  QGraphicsScene *scene = new QGraphicsScene(this);
  QGraphicsTextItem *text;
  QGraphicsLineItem *line;
  ui->GVGraf->setScene(scene);
+ ui->GVGraf->show();
 
  QBrush redBrush(Qt::red);
  QBrush greenBrush(Qt::green);
  QBrush blueBrush(Qt::blue);
  QPen outlinePen(Qt::black);
  outlinePen.setWidth(2);
+ QPen pointPen(Qt::red);
+ pointPen.setWidth(1);
+ QPen moyPen(Qt::blue);
+ moyPen.setWidth(2);
+ QPen polyPen(Qt::green);
+ polyPen.setWidth(1);
 
   DerPoly=ui->SBDerPoly->value();
   // calcul des polynômes : préparation
@@ -641,6 +687,8 @@ void MainWindow::on_PBGraf_clicked()
  qreal H(ui->GVGraf->height());
  int varX=ui->SBGraVarX->value()-1;
  int varY=ui->SBGraVarY->value()-1;
+  ModelDatoj.sortN(varX,0,0,Qt::AscendingOrder); // trier
+
   double moyX=TlfSommes[varX]/LCount;
   double minX=moyX-2*TlfEcart[varX];
   double maxX=moyX+2*TlfEcart[varX];
@@ -660,17 +708,39 @@ void MainWindow::on_PBGraf_clicked()
   text->setPos(grafX,1);
   text = scene->addText(QString("Y=%1").arg(minY), QFont("Arial", 8) );
   text->setPos(grafX,H - text->boundingRect().height()-1);
-  for (int i=0 ; i<Model.rowCount() ; i++ )
+  int tailleEch=ModelDatoj.rowCount()/W*10;
+  int nbEch=0;
+  double totX=0.0, totY=0.0;
+
+  for (int i=0 ; i<ModelDatoj.rowCount() ; i++ )
   {
     litVar(i);
     double X=TlfVar[varX];
     double Y=TlfVar[varY];
+    totX += X;
+    totY += Y;
+    if (++nbEch >= tailleEch)
+    {
+      double moyX=  totX/nbEch;
+      double moyY = totY/nbEch;
+//      if ((minX<moyX && moyX<maxX) && (minY<moyY && moyY<maxY))
+      {
+        grafX=(moyX-minX)*W/(maxX-minX);
+        grafY=(maxY-moyY)*H/(maxY-minY);
+        line = scene->addLine(grafX-2,grafY,grafX+2,grafY,moyPen);
+        line = scene->addLine(grafX,grafY-2,grafX,grafY+2,moyPen);
+        line->setToolTip(QString("X=%1,Y=%2").arg(moyX).arg(moyY));
+      }
+      totY=0.0;
+      totX=0.0;
+      nbEch=0;
+    }
     grafX=(X-minX)*W/(maxX-minX);
     grafY=(maxY-Y)*H/(maxY-minY);
-    if ((minX<X && X<maxX) && (minY<Y && Y<maxY))
+//    if ((minX<X && X<maxX) && (minY<Y && Y<maxY))
     {
-        scene->addLine(grafX-2,grafY,grafX+2,grafY,outlinePen);
-        line = scene->addLine(grafX,grafY-2,grafX,grafY+2,outlinePen);
+        //scene->addLine(grafX-1,grafY,grafX+1,grafY,outlinePen);
+        line = scene->addLine(grafX,grafY,grafX,grafY,pointPen);
         line->setToolTip(QString("X=%1,Y=%2").arg(X).arg(Y));
     }
     // préparation polynômes :
@@ -689,21 +759,58 @@ void MainWindow::on_PBGraf_clicked()
 
   }
   // calcul des polynômes :
+  ModelPoly.setNbHeader(2);
+  ModelPoly.clearData();
+
   for (int i=0 ; i<=DerPoly ; i++)
   {
     remplitmatrice(i,TlfSXk,TlfSXkY,LPoints);
     resoutMatrice(i);
+    // affichage des polynômes :
+    ModelPoly.header1 << QString("P%1").arg(i);     // horizontal header
+    ModelPoly.header2 << QString("Polynome de degré %1").arg(i);     // horizontal header
+    //SGPoly.cells[i+1,0]:='P'+IntTostr(i);
     // affichage des coefficients :
-    //for (int j=0 ; j<= i ; j++)
+    QString formule="";
+    QString degre="1";
+    for (int j=0 ; j<= i ; j++)
+    {
+      ModelPoly.setData(j,i,QString("%1").arg(-TlfMat[j][i+1]));
+      formule.append( QString("%1*%2").arg(degre).arg(-TlfMat[j][i+1]));
+      if(j==0) degre=QString("+:%1").arg(varX+1);
+      else degre.append(QString("*:%1").arg(varX+1));
+    }
+    ModelPoly.setData(DerPoly+1,i,formule);
     //  SGPoly.cells[i+1,j+1]:=floatToStr(-TlfMat[j,i+1]);
   }
-  // affichage des polynômes :
-  for (int i=0 ; i<=DerPoly ; i++)
+  ui->TV_Poly->setModel(&ModelPoly);
+  // dessin des Polynômes :
+  // degré 1 :
+  double realY = ModelPoly.data(0,1).toDouble()+minX*ModelPoly.data(1,1).toDouble();
+  double realY2 = ModelPoly.data(0,1).toDouble()+maxX*ModelPoly.data(1,1).toDouble();
+  grafY=(maxY-realY)*H/(maxY-minY);
+  double grafY2=(maxY-realY2)*H/(maxY-minY);
+  line = scene->addLine(0,grafY,W,grafY2,polyPen);
+  line->setToolTip(QString("poly 1"));
+  for (int grafX=1 ; grafX<W-1 ; grafX++)
   {
-    //if ( i>0) SGPoly.cells[0,i+1]:='+ x'+IntTostr(i);
-    //else SGPoly.cells[0,i+1]:='1';
-    //SGPoly.cells[i+1,0]:='P'+IntTostr(i);
-  }
+      //    grafX=(X-minX)*W/(maxX-minX);
+    double realX=minX+(grafX*1.0)/W*(maxX-minX);
+    double realY;
+    for (int degre=2 ; degre<= DerPoly ; degre++)
+    {
+        realY=ModelPoly.data(0,degre).toDouble();
+        double Xn=realX;
+        for (int i=1 ; i<= degre ; i++)
+        {
+          realY += ModelPoly.data(i,degre).toDouble()*Xn;
+          Xn *= realX;
+        }
+        grafY=(maxY-realY)*H/(maxY-minY);
+        line = scene->addLine(grafX,grafY,grafX,grafY,polyPen);
+        line->setToolTip(QString("poly %1").arg(degre));
+    }
 
+  }
 
 }

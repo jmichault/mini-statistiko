@@ -34,11 +34,13 @@ private slots:
     void on_PBGraf_clicked();
 
 private:
-    QDsvTableModel Model;
+    QDsvTableModel ModelDatoj;
     QDsvTableModel ModelRegLin;
+    QDsvTableModel ModelPoly;
     void litNomsVar();
     void litVar(int ligne);
-    void RegLin(int *tvars, int nbvars);
+    void RegLin(int *tvars, int nbvars,int ligne);
+    void RegLins(int *tvars, int nbvars);
     Ui::MainWindow *ui;
 };
 #endif // MAINWINDOW_H
