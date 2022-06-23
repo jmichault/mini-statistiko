@@ -11,73 +11,112 @@ struct TTok {
  double valeur; // si tok == op_plus,...
 };
 
-struct TTok *pttok;
-//typedef double  TF(int x);
-//typedef int  TF2(QString x);
-
-//double evalTok(TF getvari);
-//void evalExpr(QString Sexpr, TF2 getvars);
-
-double laPile[100];
-struct TTok lesToken[100];
-int NbToken;
-
+static struct TTok lesToken[100];
+static int NbToken;
 
 // fonction qui calcule la valeur numérique de l'expression qui a été précédemment analysée par EvalExpr
 // la fonction getvari renvoie la valeur numérique de la variable
 double evalTok(TF getvari)
 {
- int posTok,posPile;
-  posTok=0;
-  posPile=-1;
-  while (posTok<NbToken)
+  QVarLengthArray<double, 20> laPile(0);
+  for(int posTok=0 ; posTok<NbToken ; posTok++)
   {
+    double x1;
     switch (lesToken[posTok].typeTok)
     {
      case tok_nop:// rien à faire
       break;
      case tok_var:
-      posPile++;
-      laPile[posPile]=getvari(lesToken[posTok].indice);
+      laPile.append(getvari(lesToken[posTok].indice));
       break;
      case tok_val:
-      posPile++;
-      laPile[posPile]=lesToken[posTok].valeur;
+      laPile.append(lesToken[posTok].valeur);
       break;
      case op_plus:
-      laPile[posPile-1]=laPile[posPile-1]+laPile[posPile];
-      posPile--;
+      x1=laPile.last();
+      laPile.resize(laPile.count()-1);
+      laPile.last() += x1;
       break;
      case op_moins:
-      laPile[posPile-1]=laPile[posPile-1]-laPile[posPile];
-      posPile--;
+      x1=laPile.last();
+      laPile.resize(laPile.count()-1);
+      laPile.last() -= x1;
       break;
      case op_div:
-      laPile[posPile-1]=laPile[posPile-1]/laPile[posPile];
-      posPile--;
+      x1=laPile.last();
+      laPile.resize(laPile.count()-1);
+      laPile.last() /= x1;
       break;
      case op_mult:
-      laPile[posPile-1]=laPile[posPile-1]*laPile[posPile];
-      posPile--;
+      x1=laPile.last();
+      laPile.resize(laPile.count()-1);
+      laPile.last() *= x1;
       break;
      case fct:
       if (lesToken[posTok].indice==1)
-        laPile[posPile]=log(laPile[posPile]);
+        laPile.last()=log(laPile.last());
       else
-        laPile[posPile]=exp(laPile[posPile]);
+        laPile.last()=exp(laPile.last());
       break;
      default:
       break;
     }
-    posTok++;
   }
- return laPile[0];
+ return laPile.last();
 }
 
-// fonction récursive qui transforme l'expression Sexpr en une pile de tokens
+void printResEval()
+{
+  QString formule="";
+  for (int posTok =0 ; posTok<NbToken ; posTok ++)
+  {
+    switch (lesToken[posTok].typeTok)
+    {
+     case tok_nop:// rien à faire
+        formule.append(QString("nop "));
+      break;
+     case tok_var:
+      formule.append(QString(":%1 ").arg(lesToken[posTok].indice));
+      break;
+     case tok_val:
+        formule.append(QString("%1 ").arg(lesToken[posTok].valeur));
+      break;
+     case op_plus:
+      formule.append(QString("+ "));
+      break;
+     case op_moins:
+        formule.append(QString("- "));
+      break;
+     case op_div:
+        formule.append(QString("/ "));
+      break;
+     case op_mult:
+        formule.append(QString("* "));
+      break;
+     case fct:
+      if (lesToken[posTok].indice==1)
+          formule.append(QString("log "));
+      else
+        formule.append(QString("exp "));
+      break;
+     default:
+        formule.append(QString("? "));
+      break;
+    }
+  }
+  // pour tests :
+  QMessageBox msgBox;
+  msgBox.setText("formule :  "+formule);
+  msgBox.exec();
+}
+
+
+
+// fonction récursive qui transforme l'expression Sexpr en une suite de tokens de type «notation polonaise»
 // la fonction getvars renvoie le numéro de la variable
 // attention, cette fonction ne marche que pour des expressions simples.
-void EvalExpr2(QString sExpr,TF2 getvars, bool init=true)
+// elle est notamment boguée dans la gestion des parenthèses et dans la gestion de la priorité des opérateurs…
+void EvalExpr2(QString sExpr,TF2 getvars)
 {
  double tmpLf;
  int posErr,posPf,nbPar;
@@ -87,8 +126,6 @@ void EvalExpr2(QString sExpr,TF2 getvars, bool init=true)
  TTok tokMem[4];
  int nbMem;
  int i;
-  if (init)
-    NbToken=0;
   //DecimalSeparator='.';// positionner le séparateur pour fonction val
   posVal=NbToken;
   // saut des blancs
@@ -126,7 +163,7 @@ void EvalExpr2(QString sExpr,TF2 getvars, bool init=true)
         tokMem[i]=lesToken[posVal+i];
       NbToken=posVal;
       // traiter l'expression entre parenthèses
-      EvalExpr2(sExpr2,getvars,false);
+      EvalExpr2(sExpr2,getvars);
       lesToken[NbToken].typeTok=tok_nop;// protéger l'expression
       NbToken++;
       // rétablir les éléments mémorisés
@@ -229,8 +266,9 @@ void EvalExpr2(QString sExpr,TF2 getvars, bool init=true)
         NbToken++;
         break;
        case '*':
-        if ( (lesToken[NbToken-1].typeTok==op_plus) || (lesToken[NbToken-1].typeTok==op_moins) )
-        {
+        if ( (lesToken[NbToken-1].typeTok==op_plus) || (lesToken[NbToken-1].typeTok==op_moins) ) //
+        {// gestion de la priorité de * sur +
+          // FIXME
           lesToken[NbToken+1].typeTok=lesToken[NbToken-1].typeTok;
           lesToken[NbToken].typeTok=op_mult;
           posVal=NbToken-1;
@@ -243,8 +281,9 @@ void EvalExpr2(QString sExpr,TF2 getvars, bool init=true)
         NbToken++;
         break;
        case '/':
-        if ( (lesToken[NbToken-1].typeTok=op_plus) || (lesToken[NbToken-1].typeTok=op_moins) )
+        if ( (lesToken[NbToken-1].typeTok==op_plus) || (lesToken[NbToken-1].typeTok==op_moins) ) //
         {
+          // FIXME
           lesToken[NbToken+1].typeTok=lesToken[NbToken-1].typeTok;
           lesToken[NbToken].typeTok=op_div;
           posVal=NbToken-1;
@@ -264,6 +303,14 @@ void EvalExpr2(QString sExpr,TF2 getvars, bool init=true)
 
 void evalExpr(QString sExpr, TF2 getvars)
 {
+  for(int i=0 ; i<100 ; i++)
+  {
+      lesToken[i].indice=0;
+      lesToken[i].typeTok=op_plus;
+      lesToken[i].valeur=0.0;
+  }
+  NbToken=0;
   EvalExpr2(sExpr,getvars);
+  //printResEval();
 }
 

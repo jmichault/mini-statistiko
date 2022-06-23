@@ -460,12 +460,12 @@ void MainWindow::RegLin(int *tVars, int nbvars, int ligne)
         {
           QString Nomo=ModelDatoj.header1[tVars[j]];
           Nomo.replace(' ','_');
-          double moy=TlfSommes[tVars[j]]/LCount;
+          double moy=TlfSommes[tVars[j]]/LPoints;
           constante += moy*(-TlfMat[j][nbvars+1]);
           if (moy>=0.0)
             formule.append(QString("(%1-%2)*%3+").arg(Nomo).arg(moy,0,'G',4).arg(-TlfMat[j][nbvars+1],0,'G',4));
           else
-            formule.append(QString("(%1%2)*%3+").arg(Nomo).arg(moy,0,'G',4).arg(-TlfMat[j][nbvars+1],0,'G',4));
+            formule.append(QString("(%1+%2)*%3+").arg(Nomo).arg(-moy,0,'G',4).arg(-TlfMat[j][nbvars+1],0,'G',4));
         }
         if(constante <0)
             formule.truncate(formule.length()-1);
@@ -475,9 +475,12 @@ void MainWindow::RegLin(int *tVars, int nbvars, int ligne)
       {
         for (int j=0 ; j<nbvars ; j++)
         {
-          double moy=TlfSommes[j]/LCount;
-          constante += -moy*(-TlfMat[j][nbvars+1]);
-          formule.append(QString(":%1*%2+").arg(tVars[j]+1).arg(-TlfMat[j][nbvars+1],0,'G',4));
+          double moy=TlfSommes[tVars[j]]/LPoints;
+          constante += moy*(-TlfMat[j][nbvars+1]);
+          if (moy>=0.0)
+            formule.append(QString("(:%1-%2)*%3+").arg(tVars[j]+1).arg(moy,0,'G',4).arg(-TlfMat[j][nbvars+1],0,'G',4));
+          else
+            formule.append(QString("(:%1+%2)*%3+").arg(tVars[j]+1).arg(-moy,0,'G',4).arg(-TlfMat[j][nbvars+1],0,'G',4));
         }
         formule.append(QString("%1").arg(constante,0,'G',4));
       }
@@ -502,71 +505,44 @@ void MainWindow::RegLin(int *tVars, int nbvars, int ligne)
       }
     }
     ModelRegLin.setData(ligne,1,formule);
-}
-
-// fait les régressions linéaires en ajoutant une variable à celles déjà sélectionnées
-// tVars = tableau des variables imposées
-// nbvars = nb de variables total (on a donc nbvars-1 variables déjà dans le tableau)
-void MainWindow::RegLins(int *tVars, int nbvars)
-{
- int varY;// numéro de la variable à expliquer
- QString formule,tmpstr;
- int i,x;
- double lfS,lfSC,lfS2,lfSC2,lfP,lfZ,lfTmp,lfEcart,lfY;
- int ligne;//N° de ligne dans la QTableWidget;
-  ligne=nbvars-1;
-  varY=ui->SB_Reg_V0->value()-1;
-  // on calcule la droite la plus proche pour chaque variable non traitée
-  for (x=0 ; x<NbVar ; x++)
-  {
-    if ((! TVarIsNum[x]) || (x==varY)) continue; // sauter les variables non numériques et varY
-    // sauter les variables déjà intégrées
-    for (i=0 ; i<nbvars-1 ; i++)
-       if ((x==tVars[i]) || (varY==x)) break;
-    // si on est sorti de la boucle précédente par le break, on saute cette variable :
-    if ( (i<nbvars-1) && ((x==tVars[i]) || (varY==x))) continue;
-    tVars[nbvars-1]= x;
-    RegLin(tVars,nbvars,ligne);
     //calcul moyenne et écart type
-    lfS=0;
-    lfSC=0;
-    lfS2=0;
-    lfSC2=0;
-    lfP=0;
-    // Pour chacune des formules trouvées, on calcule écart type et corrélation :
+    double lfS,lfSC,lfS2,lfSC2,lfP,lfZ,lfTmp,lfEcart,lfY;
+    lfS=0.0;
+    lfSC=0.0;
+    lfS2=0.0;
+    lfSC2=0.0;
+    lfP=0.0;
     formule = ModelRegLin.data(ligne,1).toString();
     evalExpr(formule,getvars);
-    int ligneEnCours=0;
-    while (ligneEnCours < ui->TV_Datoj->model()->rowCount() )
+    for(int ligneEnCours=0 ; ligneEnCours < ui->TV_Datoj->model()->rowCount() ; ligneEnCours++ )
     {
       litVar(ligneEnCours);
       /*
-    if form1.CBgroupe.checked then
-     begin
-      lfZ:=0;
-      lfy:=0;
-      for i:=1 to form1.SEGroupe.value do
-       begin
-        if ligneEncours < form1.SGDATA.rowcount then
+      if form1.CBgroupe.checked then
+      begin
+        lfZ:=0;
+        lfy:=0;
+        for i:=1 to form1.SEGroupe.value do
          begin
-          lfZ:=lfZ+EvalTok(getvari);
-          lfY:=lfY+strToFloat(form1.SGData.cells[varY,ligneEnCours]);
-          inc(ligneEnCours);
-         end
-        else
-         break;
-       end;
-      if i <form1.SEGroupe.value+1 then
-       break;
-      lfZ:=lfZ/form1.segroupe.value;
-      lfY:=lfy/form1.segroupe.value;
-     end
-    else
-    */
+          if ligneEncours < form1.SGDATA.rowcount then
+           begin
+            lfZ:=lfZ+EvalTok(getvari);
+            lfY:=lfY+strToFloat(form1.SGData.cells[varY,ligneEnCours]);
+            inc(ligneEnCours);
+           end
+          else
+           break;
+         end;
+        if i <form1.SEGroupe.value+1 then
+          break;
+        lfZ:=lfZ/form1.segroupe.value;
+        lfY:=lfy/form1.segroupe.value;
+      end
+      else
+     */
       {
         lfZ=evalTok(getvari);
         lfY=TlfVar[varY];
-        ligneEnCours++;
       }
       lfS=lfS+lfZ;
       lfSC=lfSC+lfZ*lfZ;
@@ -589,6 +565,30 @@ void MainWindow::RegLins(int *tVars, int nbvars)
        lfTmp= lfTmp/TlfEcart[varY]/lfEcart;
     else lfTmp=0;
     ModelRegLin.setData(ligne,3,QString("%1").arg(lfTmp));
+}
+
+// fait les régressions linéaires en ajoutant une variable à celles déjà sélectionnées
+// tVars = tableau des variables imposées
+// nbvars = nb de variables total (on a donc nbvars-1 variables déjà dans le tableau)
+void MainWindow::RegLins(int *tVars, int nbvars)
+{
+ int varY;// numéro de la variable à expliquer
+ QString formule,tmpstr;
+ int i,x;
+ int ligne;//N° de ligne dans la QTableWidget;
+  ligne=nbvars-1;
+  varY=ui->SB_Reg_V0->value()-1;
+  // on calcule la droite la plus proche pour chaque variable non traitée
+  for (x=0 ; x<NbVar ; x++)
+  {
+    if ((! TVarIsNum[x]) || (x==varY)) continue; // sauter les variables non numériques et varY
+    // sauter les variables déjà intégrées
+    for (i=0 ; i<nbvars-1 ; i++)
+       if ((x==tVars[i]) || (varY==x)) break;
+    // si on est sorti de la boucle précédente par le break, on saute cette variable :
+    if ( (i<nbvars-1) && ((x==tVars[i]) || (varY==x))) continue;
+    tVars[nbvars-1]= x;
+    RegLin(tVars,nbvars,ligne);
     //ui->TV_RegLin->setItem(ligne,3,new QTableWidgetItem(lfTmp));
     ligne++;
   }//for x
@@ -604,7 +604,7 @@ void MainWindow::on_PBRegLin_clicked()
   ModelRegLin.clearData();
   ModelRegLin.header1 << "Variables"<<"formule"<<"EC(f-variable)"<<"corr";
   for (int i=1 ; i<=ui->SBNbImp->value() ; i++)
-   ModelRegLin.header1 << QString("V%1").arg(i);
+    ModelRegLin.header1 << QString("V%1").arg(i);
   if(ui->SBNbImp->value() >0)
   {
     tVars[0]=ui->SBVar1->value()-1;
@@ -713,7 +713,7 @@ void MainWindow::on_PBGraf_clicked()
   // calcul des polynômes : préparation
   double TlfSXk[MAXPOLY*2+2];
   double TlfSXkY[MAXPOLY*2+2];
-  for (int i=0 ; i<2*DerPoly ; i++)
+  for (int i=0 ; i<=2*DerPoly ; i++)
   {
     TlfSXk[i]=0;
     TlfSXkY[i]=0;
@@ -764,7 +764,7 @@ void MainWindow::on_PBGraf_clicked()
       {
         grafX=(moyX-minX)*W/(maxX-minX);
         grafY=(maxY-moyY)*H/(maxY-minY);
-        line = scene->addLine(grafX-2,grafY,grafX+2,grafY,moyPen);
+        scene->addLine(grafX-2,grafY,grafX+2,grafY,moyPen);
         line = scene->addLine(grafX,grafY-2,grafX,grafY+2,moyPen);
         line->setToolTip(QString("X=%1,Y=%2").arg(moyX).arg(moyY));
       }
