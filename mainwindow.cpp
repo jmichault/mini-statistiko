@@ -513,7 +513,8 @@ void MainWindow::RegLin(int *tVars, int nbvars, int ligne)
     lfSC2=0.0;
     lfP=0.0;
     formule = ModelRegLin.data(ligne,1).toString();
-    evalExpr(formule,getvars);
+    QList<struct TTok> evalTokens;
+    evalExpr(formule,getvars,&evalTokens);
     for(int ligneEnCours=0 ; ligneEnCours < ui->TV_Datoj->model()->rowCount() ; ligneEnCours++ )
     {
       litVar(ligneEnCours);
@@ -541,7 +542,7 @@ void MainWindow::RegLin(int *tVars, int nbvars, int ligne)
       else
      */
       {
-        lfZ=evalTok(getvari);
+        lfZ=evalTok(getvari,&evalTokens);
         lfY=TlfVar[varY];
       }
       lfS=lfS+lfZ;
@@ -564,7 +565,7 @@ void MainWindow::RegLin(int *tVars, int nbvars, int ligne)
     if (( TlfEcart[varY]!= 0) && (lfEcart>0))
        lfTmp= lfTmp/TlfEcart[varY]/lfEcart;
     else lfTmp=0;
-    ModelRegLin.setData(ligne,3,QString("%1").arg(lfTmp));
+    ModelRegLin.setData(ligne,3,QString("%1").arg(abs(lfTmp)));
 }
 
 // fait les régressions linéaires en ajoutant une variable à celles déjà sélectionnées
@@ -602,7 +603,7 @@ void MainWindow::on_PBRegLin_clicked()
  int tVars[MAXVAR];
   ModelRegLin.setNbHeader(1);
   ModelRegLin.clearData();
-  ModelRegLin.header1 << "Variables"<<"formule"<<"EC(f-variable)"<<"corr";
+  ModelRegLin.header1 << "Variables"<<"formule"<<"EC(f-variable)"<<"abs(corr)";
   for (int i=1 ; i<=ui->SBNbImp->value() ; i++)
     ModelRegLin.header1 << QString("V%1").arg(i);
   if(ui->SBNbImp->value() >0)
@@ -666,11 +667,13 @@ void MainWindow::on_PBAldonu_clicked()
  int Kol;
   Kol = ModelDatoj.columnCount();
   litNomsVar();
-  evalExpr(ui->LEFormule->text(),getvars );
+
+  QList<struct TTok> evalTokens;
+  evalExpr(ui->LEFormule->text(),getvars,&evalTokens );
   for (int i=0 ; i<ModelDatoj.rowCount() ; i++ )
   {
     litVar(i);
-    ModelDatoj.setData(i, Kol, evalTok(getvari));
+    ModelDatoj.setData(i, Kol, evalTok(getvari,&evalTokens));
   }
   if(ModelDatoj.getNbHeader()>=1) ModelDatoj.header1 << ui->LEFormule->text().arg(Kol+1);
   ModelDatoj.headerDataChanged(Qt::Horizontal, 0, ModelDatoj.header1.count());
