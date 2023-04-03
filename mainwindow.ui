@@ -367,7 +367,7 @@
                 <string>Nombro</string>
                </property>
                <property name="maximum">
-                <number>5</number>
+                <number>9</number>
                </property>
               </widget>
              </item>
@@ -435,6 +435,46 @@
                 <string>Kvina variablo</string>
                </property>
                <property name="minimum">
+                <number>1</number>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QSpinBox" name="SBVar6">
+               <property name="enabled">
+                <bool>false</bool>
+               </property>
+               <property name="value">
+                <number>1</number>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QSpinBox" name="SBVar7">
+               <property name="enabled">
+                <bool>false</bool>
+               </property>
+               <property name="value">
+                <number>1</number>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QSpinBox" name="SBVar8">
+               <property name="enabled">
+                <bool>false</bool>
+               </property>
+               <property name="value">
+                <number>1</number>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QSpinBox" name="SBVar9">
+               <property name="enabled">
+                <bool>false</bool>
+               </property>
+               <property name="value">
                 <number>1</number>
                </property>
               </widget>

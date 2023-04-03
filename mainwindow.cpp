@@ -42,7 +42,7 @@ QString
 //int NbHeader=0; // nombre de lignes d'en-têtes
 
 double
-  TlfMat[MAXPOLY][MAXPOLY]
+  TlfMat[MAXVAR][MAXVAR]
 ;
 
 int DerPoly;
@@ -631,6 +631,26 @@ void MainWindow::on_PBRegLin_clicked()
     tVars[4]=ui->SBVar5->value()-1;
     RegLin(tVars,5,4);
   }
+  if(ui->SBNbImp->value() >5)
+  {
+    tVars[5]=ui->SBVar6->value()-1;
+    RegLin(tVars,6,5);
+  }
+  if(ui->SBNbImp->value() >6)
+  {
+    tVars[6]=ui->SBVar7->value()-1;
+    RegLin(tVars,7,6);
+  }
+  if(ui->SBNbImp->value() >7)
+  {
+    tVars[7]=ui->SBVar8->value()-1;
+    RegLin(tVars,8,7);
+  }
+  if(ui->SBNbImp->value() >8)
+  {
+    tVars[8]=ui->SBVar9->value()-1;
+    RegLin(tVars,9,8);
+  }
   for (nbVars=ui->SBNbImp->value()+1 ; nbVars <= ui->SBNbVars->value() ; nbVars++)
   {
     RegLins(tVars,nbVars);
@@ -651,6 +671,10 @@ void MainWindow::on_SBNbImp_valueChanged(int arg1)
     ui->SBVar3->setEnabled((arg1>=3)?true:false);
     ui->SBVar4->setEnabled((arg1>=4)?true:false);
     ui->SBVar5->setEnabled((arg1>=5)?true:false);
+    ui->SBVar6->setEnabled((arg1>=6)?true:false);
+    ui->SBVar7->setEnabled((arg1>=7)?true:false);
+    ui->SBVar8->setEnabled((arg1>=8)?true:false);
+    ui->SBVar9->setEnabled((arg1>=9)?true:false);
 }
 
 void MainWindow::on_PBForigu_clicked()
@@ -852,5 +876,10 @@ void MainWindow::on_PBGraf_clicked()
     }
 
   }
+
+}
+
+void MainWindow::on_SBNbImp_textChanged(const QString &arg1)
+{
 
 }

@@ -52,7 +52,7 @@ double evalTok(TF getvari,QList<struct TTok> *lesToken)
  return laPile.last();
 }
 
-/*
+//*
 // pour tests :
 void printResEval(QList<struct TTok> *lesToken)
 {
@@ -97,7 +97,7 @@ void printResEval(QList<struct TTok> *lesToken)
   msgBox.setText("formule :  "+formule);
   msgBox.exec();
 }
-*/
+//*/
 
 void afficheMessage(const QString &msg)
 {
@@ -282,4 +282,5 @@ void evalExpr(QString sExpr,TF2 getvars, QList<struct TTok> *lesToken)
     sExpr=sExpr.mid(posErr+1,sExpr.length());
     posErr=0;
   }
+  //printResEval(lesToken);
 }

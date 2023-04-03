@@ -33,6 +33,8 @@ private slots:
 
     void on_PBGraf_clicked();
 
+    void on_SBNbImp_textChanged(const QString &arg1);
+
 private:
     QDsvTableModel ModelDatoj;
     QDsvTableModel ModelRegLin;
